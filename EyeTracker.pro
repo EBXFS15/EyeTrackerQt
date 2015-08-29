@@ -29,3 +29,6 @@ SOURCES += main.cpp\
 HEADERS  += eyetrackerwindow.h
 
 FORMS    += eyetrackerwindow.ui
+
+DISTFILES += \
+    README.md
