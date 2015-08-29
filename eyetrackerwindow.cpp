@@ -36,9 +36,3 @@ void EyeTrackerWindow::getImage()
         QApplication::processEvents();
     }
 }
-
-void EyeTrackerWindow::paintEvent(QPaintEvent *event)
-{
-    ui->label->update();
-}
-

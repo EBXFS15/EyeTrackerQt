@@ -27,9 +27,6 @@ public:
 
 private:
     Ui::EyeTrackerWindow *ui;
-
-protected:
-     void paintEvent(QPaintEvent *event);
 };
 
 #endif // EYETRACKERWINDOW_H
