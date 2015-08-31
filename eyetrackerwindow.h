@@ -20,6 +20,7 @@ public:
     ~EyeTrackerWindow();
     void updateImage(QPixmap pixmap);
     void getImage();
+    void addTimestamp(double timestamp);
 
     CvCapture* capture;
     QPixmap* pixmap;
