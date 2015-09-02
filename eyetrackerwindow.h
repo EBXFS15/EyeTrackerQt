@@ -2,10 +2,8 @@
 #define EYETRACKERWINDOW_H
 
 #include <QMainWindow>
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <QThread>
+#include "capturethread.h"
 
 namespace Ui {
 class EyeTrackerWindow;
@@ -21,10 +19,13 @@ public:
     void updateImage(QPixmap pixmap);
     void getImage();
     void addTimestamp(double timestamp);
+    QPixmap pixmap;
+    CaptureThread captureThread;
 
-    CvCapture* capture;
-    QPixmap* pixmap;
 
+public slots:
+    void onCaptured(QImage image,double timestamp);
+    void onClosed();
 
 private:
     Ui::EyeTrackerWindow *ui;

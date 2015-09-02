@@ -17,7 +17,7 @@
    <property name="minimumSize">
     <size>
      <width>1024</width>
-     <height>768</height>
+     <height>600</height>
     </size>
    </property>
    <widget class="QLabel" name="label">
@@ -28,6 +28,12 @@
       <width>640</width>
       <height>480</height>
      </rect>
+    </property>
+    <property name="autoFillBackground">
+     <bool>false</bool>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(152, 90, 90);</string>
     </property>
     <property name="text">
      <string>TextLabel</string>
@@ -53,7 +59,7 @@
     <property name="geometry">
      <rect>
       <x>150</x>
-      <y>560</y>
+      <y>550</y>
       <width>291</width>
       <height>41</height>
      </rect>
@@ -66,22 +72,5 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>
- <connections>
-  <connection>
-   <sender>quitBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>EyeTrackerWindow</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>930</x>
-     <y>365</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>511</x>
-     <y>383</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

@@ -13,7 +13,7 @@ target.path = /home/debian
 INSTALLS += target
 
 TEMPLATE = app
-LIBS +=  -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_video -lopencv_imgcodecs\
+LIBS +=  -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs\
          -lx264 -liconv -lusc -lavcodec -lavformat -lavutil -lswscale -lopencv_videoio\
          -L/opt/embedded/bbb/rootfs/usr/lib\
          -ljpeg -lm -lz\
@@ -25,10 +25,11 @@ INCLUDEPATH += /opt/embedded/bbb/rootfs/usr/include/\
 
 SOURCES += main.cpp\
         eyetrackerwindow.cpp \
-    v4l2camera.cpp
+        v4l2camera.cpp \
+    capturethread.cpp
 
 HEADERS  += eyetrackerwindow.h \
-    v4l2camera.h
+    capturethread.h
 
 FORMS    += eyetrackerwindow.ui
 
