@@ -17,9 +17,16 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <linux/videodev2.h>
-#include <libv4l1.h>
-#include <libv4l2.h>
 
+//----------
+#include <assert.h>
+#include <getopt.h>             /* getopt_long() */
+#include <unistd.h>
+#include <sys/stat.h>
+
+#include <linux/videodev2.h>
+
+//#include <libv4l2.h>
 
 struct buffer {
         void   *start;
@@ -27,10 +34,6 @@ struct buffer {
 };
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
-
-#define DEV_NAME "/dev/video0"
-
-#define USE_DIRECT_V4L2
 
 class CaptureThread: public QThread
 {
@@ -40,11 +43,14 @@ class CaptureThread: public QThread
     CaptureThread();
     ~CaptureThread();
     void run();
+    int read_frame(void);
     void stopCapturing();
-    int getFrameV4l2(void);
+    void getFrameV4l2(void);
     void open_device(void);
     void close_device(void);
     void init_device(void);
+    void init_mmap(void);
+    void init_read(unsigned int buffer_size);
     void uninit_device(void);
     void start_capturing(void);
     void stop_capturing(void);
@@ -54,24 +60,14 @@ class CaptureThread: public QThread
 
 
     private:
-    struct video_capability         capability;
+    bool m_close;
     //v4l2 variables and structs
-    struct v4l2_capability          cap;
-    struct v4l2_format              fmt;
-    struct v4l2_buffer              buf;
-    struct v4l2_requestbuffers      req;
-    enum v4l2_buf_type              type;
-    fd_set                          fds;
-    struct timeval                  tv;
-    int                             r, fd ;
-    unsigned int                    i, n_buffers;
-    struct buffer                   *buffers;
-
+    int              fd;
+    struct buffer    *buffers;
+    unsigned int     n_buffers;
+    bool force_format;
     //Opencv image
     IplImage frame;
-
-    bool m_close;
-    double timestamp;
 
 };
 
