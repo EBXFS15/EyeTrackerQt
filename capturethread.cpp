@@ -60,12 +60,12 @@ int CaptureThread::getFrameV4l2(void)
                                    IPL_DEPTH_8U, 3,IPL_ORIGIN_TL, 4 );
             frame.imageData = (char *)cvAlloc(frame.imageSize);
         }
-        if(buffers[buf.index].start)
-        {
-              memcpy((char *)frame.imageData,
-              (char *)buffers[buf.index].start,
-              frame.imageSize);
-        }
+//        if(buffers[buf.index].start)
+//        {
+//              memcpy((char *)frame.imageData,
+//              (char *)buffers[buf.index].start,
+//              frame.imageSize);
+//        }
 
         //timestamp = 1000 * buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000;
         timestamp = buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000000;
@@ -100,7 +100,7 @@ void CaptureThread::init_device(void)
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     fmt.fmt.pix.width       = 640;
     fmt.fmt.pix.height      = 480;
-    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;//V4L2_PIX_FMT_BGR24;
     fmt.fmt.pix.field       = V4L2_FIELD_ANY;
     xioctl(fd, VIDIOC_S_FMT, &fmt);
     if (fmt.fmt.pix.pixelformat != V4L2_PIX_FMT_BGR24) {

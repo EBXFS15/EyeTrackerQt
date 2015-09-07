@@ -10,16 +10,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <linux/videodev2.h>
-#include <libv4l1.h>
-#include <libv4l2.h>
-
 
 struct buffer {
         void   *start;
@@ -54,8 +53,9 @@ class CaptureThread: public QThread
 
 
     private:
-    struct video_capability         capability;
     //v4l2 variables and structs
+    struct v4l2_cropcap             cropcap;
+    struct v4l2_crop                crop;
     struct v4l2_capability          cap;
     struct v4l2_format              fmt;
     struct v4l2_buffer              buf;
@@ -64,8 +64,9 @@ class CaptureThread: public QThread
     fd_set                          fds;
     struct timeval                  tv;
     int                             r, fd ;
-    unsigned int                    i, n_buffers;
+    unsigned int                    n_buffers;
     struct buffer                   *buffers;
+    bool                            force_format;
 
     //Opencv image
     IplImage frame;

@@ -24,7 +24,7 @@ QMAKE_RPATHDIR += /opt/embedded/bbb/rootfs/usr/lib/arm-linux-gnueabihf\
 
 INCLUDEPATH += /opt/embedded/bbb/rootfs/usr/include/\
                /opt/embedded/bbb/rootfs/usr/local/include\
-               /opt/embedded/bbb/rootfs/opt/cr
+               #/opt/embedded/bbb/rootfs/opt/cr
 
 SOURCES += main.cpp\
         eyetrackerwindow.cpp \
