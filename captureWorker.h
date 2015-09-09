@@ -32,13 +32,13 @@ struct buffer {
 
 #define USE_DIRECT_V4L2
 
-class CaptureThread: public QThread
+class CaptureWorker: public QObject
 {
     Q_OBJECT
 
     public:
-    CaptureThread();
-    ~CaptureThread();
+    CaptureWorker();
+    ~CaptureWorker();
     void run();
     void stopCapturing();
     int getFrameV4l2(void);
@@ -48,9 +48,16 @@ class CaptureThread: public QThread
     void uninit_device(void);
     void start_capturing(void);
     void stop_capturing(void);
+    void print_video_formats(void);
+    void disable_camera_optimisation(void);
+
+    public slots:
+    void process();
 
     signals :
+    void finished();
     void imageCaptured(QImage image, double timestamp);
+    void message(QString msg);
 
 
     private:

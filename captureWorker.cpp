@@ -1,4 +1,4 @@
-#include "capturethread.h"
+#include "captureWorker.h"
 
 static int xioctl(int fh, int request, void *arg)
 {
@@ -8,12 +8,12 @@ static int xioctl(int fh, int request, void *arg)
         {
                 r = v4l2_ioctl(fh, request, arg);
         }
-        while (r == -1 && ((errno == EINTR) || (errno == EAGAIN)));
+        while (r == -1 && errno == EINTR);
 
         return r;
 }
 
-CaptureThread::CaptureThread()
+CaptureWorker::CaptureWorker()
 {
     m_close = false;
     r       = -1;
@@ -26,30 +26,55 @@ CaptureThread::CaptureThread()
 }
 
 
-int CaptureThread::getFrameV4l2(void)
+int CaptureWorker::getFrameV4l2(void)
 {
-    do
-    {
-        FD_ZERO(&fds);
-        FD_SET(fd, &fds);
-        /* Timeout. */
-        tv.tv_sec = 2;
-        tv.tv_usec = 0;
-        r = select(fd + 1, &fds, NULL, NULL, &tv);
+        do
+        {
+            FD_ZERO(&fds);
+            FD_SET(fd, &fds);
+            /* Timeout. */
+            tv.tv_sec = 2;
+            tv.tv_usec = 0;
+            r = select(fd + 1, &fds, NULL, NULL, &tv);
         }
         while ((r == -1 && (errno = EINTR)));
 
-        if (r == -1)
+        if (-1 == r)
         {
-            perror("select");
+            if (EINTR == errno)
+            {
+                return 0;
+            }
+            emit message(QString("select error"));
+            //perror("select");
             return errno;
         }
+
+        if (0 == r)
+        {
+            emit message(QString("select timeout"));
+            //fprintf(stderr, "select timeout\n");
+            //exit(EXIT_FAILURE);
+        }
+
         CLEAR(buf);
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
         if (-1 == xioctl(fd, VIDIOC_DQBUF, &buf))
         {
-            printf("Warning: cannot dequeue video buffer");
+            switch (errno)
+            {
+                case EAGAIN:
+                    emit message(QString("Dequeue buffer: EAGAIN"));
+                    return 0;
+                case EIO:
+                    /* Could ignore EIO, see spec. */
+                    /* fall through */
+                default:
+                    emit message(QString("Error dequeuing buffer"));
+                    //perror("VIDIOC_DQBUF");
+                    return errno;
+            }
         }
 
         //reallocate image data if size changed
@@ -60,12 +85,16 @@ int CaptureThread::getFrameV4l2(void)
                                    IPL_DEPTH_8U, 3,IPL_ORIGIN_TL, 4 );
             frame.imageData = (char *)cvAlloc(frame.imageSize);
         }
-//        if(buffers[buf.index].start)
-//        {
-//              memcpy((char *)frame.imageData,
-//              (char *)buffers[buf.index].start,
-//              frame.imageSize);
-//        }
+
+//        v4lconvert_convert(m_convertData, &fmt, &fmt,
+//                                (unsigned char *)buffers[buf.index].start, buf.bytesused,
+//                                frame.bits(), fmt.fmt.pix.sizeimage);
+        if(buffers[buf.index].start)
+        {
+              memcpy((char *)frame.imageData,
+              (char *)buffers[buf.index].start,
+              frame.imageSize);
+        }
 
         //timestamp = 1000 * buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000;
         timestamp = buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000000;
@@ -75,18 +104,24 @@ int CaptureThread::getFrameV4l2(void)
         return 1;
 }
 
-void CaptureThread::stop_capturing(void)
+void CaptureWorker::stop_capturing(void)
 {
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    xioctl(fd, VIDIOC_STREAMOFF, &type);
+    if(-1 == xioctl(fd, VIDIOC_STREAMOFF, &type))
+    {
+        emit message(QString("cannot stop video stream"));
+    }
 }
 
-void CaptureThread::start_capturing(void)
+void CaptureWorker::start_capturing(void)
 {
-    xioctl(fd, VIDIOC_STREAMON, &type);
+    if(-1 == xioctl(fd, VIDIOC_STREAMON, &type))
+    {
+        emit message(QString("cannot start video stream"));
+    }
 }
 
-void CaptureThread::uninit_device(void)
+void CaptureWorker::uninit_device(void)
 {
     for (i = 0; i < n_buffers; ++i)
     {
@@ -94,22 +129,27 @@ void CaptureThread::uninit_device(void)
     }
 }
 
-void CaptureThread::init_device(void)
+void CaptureWorker::init_device(void)
 {
     CLEAR(fmt);
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     fmt.fmt.pix.width       = 640;
     fmt.fmt.pix.height      = 480;
-    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;//V4L2_PIX_FMT_BGR24;
+    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
     fmt.fmt.pix.field       = V4L2_FIELD_ANY;
-    xioctl(fd, VIDIOC_S_FMT, &fmt);
+    if(-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
+    {
+        emit message(QString("Error setting pixel format"));
+        exit(EXIT_FAILURE);
+    }
     if (fmt.fmt.pix.pixelformat != V4L2_PIX_FMT_BGR24) {
-            printf("Libv4l didn't accept RGB24 format. Can't proceed.\n");
-            exit(EXIT_FAILURE);
+        emit message(QString("Libv4l didn't accept BGR24 format. Can't proceed.\n"));
+        exit(EXIT_FAILURE);
     }
     if ((fmt.fmt.pix.width != 640) || (fmt.fmt.pix.height != 480))
-            printf("Warning: driver is sending image at %dx%d\n",
-                    fmt.fmt.pix.width, fmt.fmt.pix.height);
+        emit message(QString("Warning: driver is sending image at"));
+        //printf("Warning: driver is sending image at %dx%d\n",
+                   // fmt.fmt.pix.width, fmt.fmt.pix.height);
 
     CLEAR(req);
     req.count = 2;
@@ -134,7 +174,8 @@ void CaptureThread::init_device(void)
                           fd, buf.m.offset);
 
             if (MAP_FAILED == buffers[n_buffers].start) {
-                    perror("mmap");
+                    emit message(QString("Memory mapping error"));
+                    //perror("mmap");
                     exit(EXIT_FAILURE);
             }
     }
@@ -150,23 +191,25 @@ void CaptureThread::init_device(void)
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 }
 
-void CaptureThread::close_device(void)
+void CaptureWorker::close_device(void)
 {
     v4l2_close(fd);
 }
 
-void CaptureThread::open_device(void)
+void CaptureWorker::open_device(void)
 {
     fd = v4l2_open(DEV_NAME, O_RDWR | O_NONBLOCK, 0);
     if (fd < 0)
     {
-        perror("Cannot open device");
+        emit message(QString("Cannot open video capture device"));
+        //perror("Cannot open video capture device");
         exit(EXIT_FAILURE);
     }
 
     CLEAR (cap);
     if (-1 == xioctl (fd, VIDIOC_QUERYCAP, &cap))
     {
+        emit message(QString("Cannot query capabilities of device"));
         perror("Cannot query capabilities of device");
         exit(EXIT_FAILURE);
     }
@@ -183,17 +226,61 @@ void CaptureThread::open_device(void)
     }
 }
 
-CaptureThread::~CaptureThread()
+static std::string fcc2s(unsigned int val)
+{
+    std::string s;
+
+    s += val & 0xff;
+    s += (val >> 8) & 0xff;
+    s += (val >> 16) & 0xff;
+    s += (val >> 24) & 0xff;
+    return s;
+}
+
+void CaptureWorker::print_video_formats()
+{
+    struct v4l2_fmtdesc fmtdesc;
+
+    memset(&fmtdesc, 0, sizeof(fmtdesc));
+    fmtdesc.type = type;
+    emit message("Pixel formats supported:");
+    while (v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) >= 0)
+    {
+        emit message(QString(fcc2s(fmtdesc.pixelformat).c_str()));
+        fmtdesc.index++;
+    }
+}
+
+void CaptureWorker::disable_camera_optimisation()
+{
+    struct v4l2_control ctl;
+    ctl.id = V4L2_CID_EXPOSURE_AUTO;
+    ctl.value = V4L2_EXPOSURE_MANUAL;
+    if(v4l2_ioctl(fd,VIDIOC_S_CTRL,&ctl))
+    {
+        emit message(QString("Auto Exposure disable."));
+    }
+    else
+    {
+        emit message(QString("Cannot disable Auto Exposure."));
+    }
+}
+
+CaptureWorker::~CaptureWorker()
 {
 }
 
-void CaptureThread::run()
+void CaptureWorker::process()
 {
     #ifdef USE_DIRECT_V4L2
     //CvCapture* capture = cvCreateCameraCapture( -1 );
+    emit message("\n");
     open_device();
     init_device();
     start_capturing();
+    print_video_formats();
+    disable_camera_optimisation();
+
     QImage captFrame;
     while( m_close==false)
     {
@@ -201,11 +288,12 @@ void CaptureThread::run()
         cvCvtColor(&frame, &frame, CV_BGR2RGB);
         //double timestamp = cvGetCaptureProperty(capture,CV_CAP_PROP_POS_MSEC);
         captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888).copy();
-        emit imageCaptured(captFrame,timestamp);// timestamp);
+        emit imageCaptured(captFrame,timestamp);
     }
     stop_capturing();
     uninit_device();
     close_device();
+    emit finished();
     #else
     CvCapture* capture = cvCreateCameraCapture( -1 );
     IplImage *frame=NULL;
@@ -223,10 +311,11 @@ void CaptureThread::run()
     }
 
     cvReleaseCapture( &capture );
+    emit finished();
     #endif
 }
 
-void CaptureThread::stopCapturing()
+void CaptureWorker::stopCapturing()
 {
     m_close = true;
 }

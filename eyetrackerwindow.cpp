@@ -9,7 +9,17 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     ui(new Ui::EyeTrackerWindow)
 {
     ui->setupUi(this);
-    connect(&captureThread, SIGNAL(imageCaptured(QImage, double)), this, SLOT(onCaptured(QImage, double)));
+
+    captureWorker.moveToThread(&captureThread);
+    connect(&captureThread, SIGNAL(started()), &captureWorker, SLOT(process()));
+    connect(&captureWorker, SIGNAL(imageCaptured(QImage, double)), this, SLOT(onCaptured(QImage, double)));
+    connect(&captureWorker, SIGNAL(finished()), &captureThread, SLOT(quit()));
+    connect(&captureWorker, SIGNAL(finished()), &captureWorker, SLOT(deleteLater()));
+    connect(&captureThread, SIGNAL(finished()), &captureThread, SLOT(deleteLater()));
+    connect(&captureWorker, SIGNAL(message(QString)), this, SLOT(onMessage(QString)));
+    captureThread.start();
+
+
     connect(ui->quitBtn,SIGNAL(clicked()),this,SLOT(onClosed()));
     captureThread.start();
 }
@@ -23,6 +33,7 @@ void EyeTrackerWindow::updateImage(QPixmap pixmap)
 {
     ui->label->clear();
     ui->label->setPixmap(pixmap);
+    ui->label->adjustSize();
 }
 
 void EyeTrackerWindow::addTimestamp(double timestamp)
@@ -36,9 +47,14 @@ void EyeTrackerWindow::onCaptured(QImage captFrame, double timestamp)
     addTimestamp(timestamp);
 }
 
+void EyeTrackerWindow::onMessage(QString msg)
+{
+    ui->label_message->setText(ui->label_message->text() + msg + "\n");
+}
+
 void EyeTrackerWindow::onClosed()
 {
-    captureThread.stopCapturing();
+    captureWorker.stopCapturing();
     captureThread.wait();
     this->close();
 }

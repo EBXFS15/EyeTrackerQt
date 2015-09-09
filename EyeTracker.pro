@@ -29,10 +29,10 @@ INCLUDEPATH += /opt/embedded/bbb/rootfs/usr/include/\
 SOURCES += main.cpp\
         eyetrackerwindow.cpp \
         v4l2camera.cpp \
-    capturethread.cpp
+    captureWorker.cpp
 
 HEADERS  += eyetrackerwindow.h \
-    capturethread.h
+    captureWorker.h
 
 FORMS    += eyetrackerwindow.ui
 

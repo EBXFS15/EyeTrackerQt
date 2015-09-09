@@ -52,3 +52,23 @@ GROUP ( libc.so.6 libc_nonshared.a  AS_NEEDED ( ld-linux-armhf.so.3 ) )
 If you do not see any image with your camera, you can try using opencv
 instead of directly using v4l2 by removing the define USE_DIRECT_V4L2 in capturethread.h.
 It will then not get any timestamp (opencv version requires a bug fix).
+
+# uvcvideo driver quirks
+
+<br/>modinfo uvcvideo
+
+<br/>shows that there is a "quirks" parameters, which can be used.
+
+<br/>first unload the driver (obviously you must not use it when doing so):
+
+ <br/>rmmod uvcvideo
+
+<br/>then re-load it with the quirks parameter. assuming you want to enable both:
+<br/> UVC_QUIRK_FIX_BANDWIDTH (which has the hex-value 0x80, which is 128 in decimal) and
+<br/> UVC_QUIRK_RESTRICT_FRAME_RATE (which is 0x200 thus 512)
+<br/> you would use a quirks value of 640 (which is 128+512 resp. 0x200|0x80):
+
+<br/> modprobe uvcvideo quirks=640
+
+
+
