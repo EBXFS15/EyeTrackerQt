@@ -1,5 +1,7 @@
 #include "captureWorker.h"
 
+using namespace cv;
+
 static int xioctl(int fh, int request, void *arg)
 {
         int r = -ENODEV;;
@@ -13,16 +15,28 @@ static int xioctl(int fh, int request, void *arg)
         return r;
 }
 
+static std::string fcc2s(unsigned int val)
+{
+    std::string s;
+
+    s += val & 0xff;
+    s += (val >> 8) & 0xff;
+    s += (val >> 16) & 0xff;
+    s += (val >> 24) & 0xff;
+    return s;
+}
+
 CaptureWorker::CaptureWorker()
 {
-    m_close = false;
+    close = false;
     r       = -1;
     fd      = -1;
     i       =  0;
     /* Set up Image data */
-    cvInitImageHeader(&frame,cvSize(640,480),IPL_DEPTH_8U, 3, IPL_ORIGIN_TL, 4 );
+    cvInitImageHeader(&frame,cvSize(320,240),IPL_DEPTH_8U, 3, IPL_ORIGIN_TL, 4 );
     /* Allocate space for RGBA data */
     frame.imageData = (char *)cvAlloc(frame.imageSize);
+    convertData=NULL;
 }
 
 
@@ -78,18 +92,22 @@ int CaptureWorker::getFrameV4l2(void)
         }
 
         //reallocate image data if size changed
-        if(((unsigned long)frame.width != fmt.fmt.pix.width) || ((unsigned long)frame.height != fmt.fmt.pix.height))
+        if(((unsigned long)frame.width != destfmt.fmt.pix.width) || ((unsigned long)frame.height != destfmt.fmt.pix.height))
         {
             cvFree(&frame.imageData);
-            cvInitImageHeader( &frame,cvSize(fmt.fmt.pix.width,fmt.fmt.pix.height ),
+            cvInitImageHeader( &frame,cvSize(destfmt.fmt.pix.width,destfmt.fmt.pix.height ),
                                    IPL_DEPTH_8U, 3,IPL_ORIGIN_TL, 4 );
             frame.imageData = (char *)cvAlloc(frame.imageSize);
         }
 
-//        v4lconvert_convert(m_convertData, &fmt, &fmt,
-//                                (unsigned char *)buffers[buf.index].start, buf.bytesused,
-//                                frame.bits(), fmt.fmt.pix.sizeimage);
-        if(buffers[buf.index].start)
+        if(destfmt.fmt.pix.pixelformat != V4L2_PIX_FMT_BGR24)
+        {
+            destfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+            v4lconvert_convert(convertData, &fmt, &destfmt,
+                                    (unsigned char *)buffers[buf.index].start, buf.bytesused,
+                                    (unsigned char *)frame.imageData, fmt.fmt.pix.sizeimage);
+        }
+        else if(buffers[buf.index].start)
         {
               memcpy((char *)frame.imageData,
               (char *)buffers[buf.index].start,
@@ -117,7 +135,7 @@ void CaptureWorker::start_capturing(void)
 {
     if(-1 == xioctl(fd, VIDIOC_STREAMON, &type))
     {
-        emit message(QString("cannot start video stream"));
+        emit message(QString("cannot start video stream:"));
     }
 }
 
@@ -131,25 +149,35 @@ void CaptureWorker::uninit_device(void)
 
 void CaptureWorker::init_device(void)
 {
+
     CLEAR(fmt);
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    fmt.fmt.pix.width       = 640;
-    fmt.fmt.pix.height      = 480;
-    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
-    fmt.fmt.pix.field       = V4L2_FIELD_ANY;
-    if(-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
+
+    if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt)) {
+        emit message(QString("Could not obtain camera format"));
+        exit(EXIT_FAILURE);
+    }
+    emit message("Current Format: ");
+    emit message(QString(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
+    destfmt = fmt;
+    destfmt.fmt.pix.width       = 320;
+    destfmt.fmt.pix.height      = 240;
+    destfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;//
+    //destfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;//
+    destfmt.fmt.pix.field       = V4L2_FIELD_ANY;
+    if(-1 == xioctl(fd, VIDIOC_S_FMT, &destfmt))
     {
         emit message(QString("Error setting pixel format"));
         exit(EXIT_FAILURE);
     }
-    if (fmt.fmt.pix.pixelformat != V4L2_PIX_FMT_BGR24) {
-        emit message(QString("Libv4l didn't accept BGR24 format. Can't proceed.\n"));
-        exit(EXIT_FAILURE);
-    }
-    if ((fmt.fmt.pix.width != 640) || (fmt.fmt.pix.height != 480))
-        emit message(QString("Warning: driver is sending image at"));
-        //printf("Warning: driver is sending image at %dx%d\n",
-                   // fmt.fmt.pix.width, fmt.fmt.pix.height);
+
+    if (-1 == xioctl (fd, VIDIOC_G_FMT, &destfmt)) {
+            emit message(QString("Could not obtain camera format"));
+            exit(EXIT_FAILURE);
+        }
+        emit message("New Format: ");
+        emit message(QString(fcc2s(destfmt.fmt.pix.pixelformat).c_str()));
+
 
     CLEAR(req);
     req.count = 2;
@@ -193,6 +221,10 @@ void CaptureWorker::init_device(void)
 
 void CaptureWorker::close_device(void)
 {
+    if(convertData)
+    {
+        v4lconvert_destroy(convertData);
+    }
     v4l2_close(fd);
 }
 
@@ -205,6 +237,8 @@ void CaptureWorker::open_device(void)
         //perror("Cannot open video capture device");
         exit(EXIT_FAILURE);
     }
+
+    convertData = v4lconvert_create(fd);
 
     CLEAR (cap);
     if (-1 == xioctl (fd, VIDIOC_QUERYCAP, &cap))
@@ -224,17 +258,6 @@ void CaptureWorker::open_device(void)
             exit(EXIT_FAILURE);
         }
     }
-}
-
-static std::string fcc2s(unsigned int val)
-{
-    std::string s;
-
-    s += val & 0xff;
-    s += (val >> 8) & 0xff;
-    s += (val >> 16) & 0xff;
-    s += (val >> 24) & 0xff;
-    return s;
 }
 
 void CaptureWorker::print_video_formats()
@@ -282,12 +305,13 @@ void CaptureWorker::process()
     disable_camera_optimisation();
 
     QImage captFrame;
-    while( m_close==false)
+    while( close==false)
     {
         getFrameV4l2();
         cvCvtColor(&frame, &frame, CV_BGR2RGB);
         //double timestamp = cvGetCaptureProperty(capture,CV_CAP_PROP_POS_MSEC);
-        captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888).copy();
+        captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888).scaled(
+                    QSize(640,480));
         emit imageCaptured(captFrame,timestamp);
     }
     stop_capturing();
@@ -317,5 +341,5 @@ void CaptureWorker::process()
 
 void CaptureWorker::stopCapturing()
 {
-    m_close = true;
+    close = true;
 }

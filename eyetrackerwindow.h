@@ -31,6 +31,7 @@ public slots:
 
 private:
     Ui::EyeTrackerWindow *ui;
+    double timestamp;
 };
 
 #endif // EYETRACKERWINDOW_H

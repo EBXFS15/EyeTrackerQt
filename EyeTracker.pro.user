@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 3.3.1, 2015-09-08T22:51:51. -->
+<!-- Written by QtCreator 3.3.1, 2015-09-10T20:50:52. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
-  <value type="QByteArray">{8c9d7648-a6c8-4d04-affd-2ea876e04130}</value>
+  <value type="QByteArray">{7a1a9193-7065-4d64-b8c0-243ceb40003b}</value>
  </data>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
@@ -405,8 +405,8 @@
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">RemoteLinux.DirectUploadStep</value>
       <valuelist type="QVariantList" key="Qt4ProjectManager.MaemoRunConfiguration.LastDeployedFiles">
-       <value type="QString">/home/dpa/Qtworkspace/EyeTracker/build-EyeTracker-BBB_BFH_Cape-Release/EyeTracker</value>
        <value type="QString">/home/dpa/Qtworkspace/EyeTracker/build-EyeTracker-BBB_BFH_Cape-Debug/EyeTracker</value>
+       <value type="QString">/home/dpa/Qtworkspace/EyeTracker/build-EyeTracker-BBB_BFH_Cape-Release/EyeTracker</value>
       </valuelist>
       <valuelist type="QVariantList" key="Qt4ProjectManager.MaemoRunConfiguration.LastDeployedHosts">
        <value type="QString">192.168.2.100</value>
@@ -421,8 +421,8 @@
        <value type="QString">/opt/embedded/bbb/rootfs</value>
       </valuelist>
       <valuelist type="QVariantList" key="Qt4ProjectManager.MaemoRunConfiguration.LastDeployedTimes">
+       <value type="QDateTime">2015-09-10T20:44:19</value>
        <value type="QDateTime">2015-08-29T11:35:28</value>
-       <value type="QDateTime">2015-09-08T22:50:07</value>
       </valuelist>
       <value type="bool" key="RemoteLinux.GenericDirectUploadStep.IgnoreMissingFiles">false</value>
       <value type="bool" key="RemoteLinux.GenericDirectUploadStep.Incremental">true</value>

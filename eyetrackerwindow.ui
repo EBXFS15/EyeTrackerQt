@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1024</width>
-    <height>768</height>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,8 +23,8 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>210</x>
-      <y>60</y>
+      <x>370</x>
+      <y>10</y>
       <width>640</width>
       <height>480</height>
      </rect>
@@ -45,8 +45,8 @@
    <widget class="QPushButton" name="quitBtn">
     <property name="geometry">
      <rect>
-      <x>880</x>
-      <y>320</y>
+      <x>910</x>
+      <y>500</y>
       <width>101</width>
       <height>91</height>
      </rect>
@@ -58,22 +58,22 @@
    <widget class="QLabel" name="label_timestamp">
     <property name="geometry">
      <rect>
-      <x>150</x>
-      <y>550</y>
+      <x>30</x>
+      <y>500</y>
       <width>291</width>
       <height>41</height>
      </rect>
     </property>
     <property name="text">
-     <string>TextLabel</string>
+     <string>Timestamp</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_message">
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>60</y>
-      <width>201</width>
+      <y>10</y>
+      <width>361</width>
       <height>481</height>
      </rect>
     </property>
@@ -85,6 +85,19 @@
     </property>
     <property name="alignment">
      <set>Qt::AlignHCenter|Qt::AlignTop</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_fps">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>540</y>
+      <width>291</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>FPS</string>
     </property>
    </widget>
   </widget>

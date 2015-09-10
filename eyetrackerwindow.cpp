@@ -10,6 +10,8 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    timestamp = -1;
+
     captureWorker.moveToThread(&captureThread);
     connect(&captureThread, SIGNAL(started()), &captureWorker, SLOT(process()));
     connect(&captureWorker, SIGNAL(imageCaptured(QImage, double)), this, SLOT(onCaptured(QImage, double)));
@@ -39,6 +41,12 @@ void EyeTrackerWindow::updateImage(QPixmap pixmap)
 void EyeTrackerWindow::addTimestamp(double timestamp)
 {
     ui->label_timestamp->setText("Timestamp:"+ QString::number(timestamp));
+    if(this->timestamp>-1)
+    {
+        ui->label_fps->setText("FPS:"+ QString::number(1/(timestamp-this->timestamp)));
+    }
+    this->timestamp = timestamp;
+
 }
 
 void EyeTrackerWindow::onCaptured(QImage captFrame, double timestamp)

@@ -19,6 +19,7 @@
 #include <linux/videodev2.h>
 #include <libv4l1.h>
 #include <libv4l2.h>
+#include <libv4lconvert.h>
 
 
 struct buffer {
@@ -65,19 +66,21 @@ class CaptureWorker: public QObject
     //v4l2 variables and structs
     struct v4l2_capability          cap;
     struct v4l2_format              fmt;
+    struct v4l2_format              destfmt;
     struct v4l2_buffer              buf;
     struct v4l2_requestbuffers      req;
     enum v4l2_buf_type              type;
+    struct v4lconvert_data          *convertData;
     fd_set                          fds;
     struct timeval                  tv;
-    int                             r, fd ;
+    int                             r, fd;
     unsigned int                    i, n_buffers;
     struct buffer                   *buffers;
 
     //Opencv image
     IplImage frame;
 
-    bool m_close;
+    bool close;
     double timestamp;
 
 };
