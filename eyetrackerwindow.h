@@ -8,6 +8,7 @@
 #include <QPainter>
 #include "captureWorker.h"
 #include "eyetrackerWorker.h"
+#include "ebxMonitorWorker.h"
 
 namespace Ui {
 class EyeTrackerWindow;
@@ -27,8 +28,12 @@ public:
     QPixmap pixmap;
     CaptureWorker captureWorker;
     EyeTrackerWorker eyetrackerWorker;
+    EbxMonitorWorker ebxMonitorWorker;
     QThread captureThread;
-    QThread eyetrackerThread;
+    QThread eyetrackerThread;    
+    QThread ebxMonitorThread;
+
+    QStandardItemModel *ebxMonitorModel;
 
 
 public slots:
@@ -37,6 +42,9 @@ public slots:
     void onCaptureMessage(QString msg);
     void onTrackerMessage(QString msg);
     void onEyeFound(int x, int y);
+
+private slots:
+    void on_pushButton_pressed();
 
 private:
     Ui::EyeTrackerWindow *ui;

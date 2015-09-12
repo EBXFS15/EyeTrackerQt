@@ -16,8 +16,12 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     ui->label_message->setText(QString("Messages:\n"));
     timestamp = -1;
 
+    ebxMonitorModel = new QStandardItemModel;
+
     captureWorker.moveToThread(&captureThread);
     eyetrackerWorker.moveToThread(&eyetrackerThread);
+    ebxMonitorWorker.moveToThread(&ebxMonitorThread);
+
     connect(&captureThread, SIGNAL(started()), &captureWorker, SLOT(process()));
     connect(&captureWorker, SIGNAL(qimageCaptured(QImage, double)), this, SLOT(onCaptured(QImage, double)));
     connect(&captureWorker, SIGNAL(finished()), &captureThread, SLOT(quit()));
@@ -34,6 +38,9 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(&captureWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
     connect(&eyetrackerWorker, SIGNAL(message(QString)), this, SLOT(onTrackerMessage(QString)));
     connect(ui->quitBtn,SIGNAL(clicked()),this,SLOT(onClosed()));
+
+    ui->ebxMonitorTree->setModel(ebxMonitorModel);
+    ui->ebxMonitorTree->show();
 
     captureThread.start();
     eyetrackerThread.start();
@@ -91,4 +98,9 @@ void EyeTrackerWindow::onClosed()
 void EyeTrackerWindow::onEyeFound(int x, int y)
 {
     captureWorker.setCenter(x,y);
+}
+
+void EyeTrackerWindow::on_pushButton_pressed()
+{
+    ebxMonitorWorker.updateEbxMonitorData(ebxMonitorModel, ui->ebxMonitorTree);
 }
