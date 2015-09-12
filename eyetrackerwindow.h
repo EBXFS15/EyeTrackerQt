@@ -3,7 +3,10 @@
 
 #include <QMainWindow>
 #include <QThread>
+#include <QMetaType>
+#include <QStandardItemModel>
 #include "captureWorker.h"
+#include "eyetrackerWorker.h"
 
 namespace Ui {
 class EyeTrackerWindow;
@@ -19,15 +22,19 @@ public:
     void updateImage(QPixmap pixmap);
     void getImage();
     void addTimestamp(double timestamp);
+    QImage captFrame;
     QPixmap pixmap;
     CaptureWorker captureWorker;
+    EyeTrackerWorker eyetrackerWorker;
     QThread captureThread;
+    QThread eyetrackerThread;
 
 
 public slots:
-    void onCaptured(QImage image,double timestamp);
+    void onCaptured(QImage frame, double timestamp);
     void onClosed();
-    void onMessage(QString msg);
+    void onCaptureMessage(QString msg);
+    void onTrackerMessage(QString msg);
 
 private:
     Ui::EyeTrackerWindow *ui;

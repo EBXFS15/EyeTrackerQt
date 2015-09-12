@@ -33,7 +33,7 @@ CaptureWorker::CaptureWorker()
     fd      = -1;
     i       =  0;
     /* Set up Image data */
-    cvInitImageHeader(&frame,cvSize(320,240),IPL_DEPTH_8U, 3, IPL_ORIGIN_TL, 4 );
+    cvInitImageHeader(&frame,cvSize(DEF_IMG_WIDTH,DEF_IMG_HEIGHT),IPL_DEPTH_8U, 3, IPL_ORIGIN_TL, 4 );
     /* Allocate space for RGBA data */
     frame.imageData = (char *)cvAlloc(frame.imageSize);
     convertData=NULL;
@@ -94,6 +94,7 @@ int CaptureWorker::getFrameV4l2(void)
         //reallocate image data if size changed
         if(((unsigned long)frame.width != destfmt.fmt.pix.width) || ((unsigned long)frame.height != destfmt.fmt.pix.height))
         {
+            emit message(QString("Change width to:")+QString::number(destfmt.fmt.pix.width));
             cvFree(&frame.imageData);
             cvInitImageHeader( &frame,cvSize(destfmt.fmt.pix.width,destfmt.fmt.pix.height ),
                                    IPL_DEPTH_8U, 3,IPL_ORIGIN_TL, 4 );
@@ -159,9 +160,10 @@ void CaptureWorker::init_device(void)
     }
     emit message("Current Format: ");
     emit message(QString(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
+    emit message(QString::number((fmt.fmt.pix_mp.width))+"x"+QString::number((fmt.fmt.pix_mp.height)));
     destfmt = fmt;
-    destfmt.fmt.pix.width       = 320;
-    destfmt.fmt.pix.height      = 240;
+    destfmt.fmt.pix.width       = DEF_IMG_WIDTH;
+    destfmt.fmt.pix.height      = DEF_IMG_HEIGHT;
     destfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;//
     //destfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;//
     destfmt.fmt.pix.field       = V4L2_FIELD_ANY;
@@ -177,7 +179,7 @@ void CaptureWorker::init_device(void)
         }
         emit message("New Format: ");
         emit message(QString(fcc2s(destfmt.fmt.pix.pixelformat).c_str()));
-
+        emit message(QString::number((fmt.fmt.pix_mp.width))+"x"+QString::number((fmt.fmt.pix_mp.height)));
 
     CLEAR(req);
     req.count = 2;
@@ -285,7 +287,8 @@ void CaptureWorker::disable_camera_optimisation()
     }
     else
     {
-        emit message(QString("Cannot disable Auto Exposure."));
+        emit message(QString("Cannot disable Auto Exposure:"));
+        emit message(QString(errno));
     }
 }
 
@@ -296,23 +299,20 @@ CaptureWorker::~CaptureWorker()
 void CaptureWorker::process()
 {
     #ifdef USE_DIRECT_V4L2
-    //CvCapture* capture = cvCreateCameraCapture( -1 );
-    emit message("\n");
     open_device();
     init_device();
     start_capturing();
     print_video_formats();
     disable_camera_optimisation();
 
-    QImage captFrame;
     while( close==false)
     {
         getFrameV4l2();
         cvCvtColor(&frame, &frame, CV_BGR2RGB);
-        //double timestamp = cvGetCaptureProperty(capture,CV_CAP_PROP_POS_MSEC);
+        emit imageCaptured(frame);
         captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888).scaled(
-                    QSize(640,480));
-        emit imageCaptured(captFrame,timestamp);
+                        QSize(640,480));
+        emit qimageCaptured(captFrame,timestamp);
     }
     stop_capturing();
     uninit_device();

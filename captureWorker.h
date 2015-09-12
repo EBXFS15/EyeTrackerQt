@@ -1,11 +1,12 @@
-#ifndef CAPTURETHREAD_H
-#define CAPTURETHREAD_H
+#ifndef CAPTUREWORKER_H
+#define CAPTUREWORKER_H
 
 
-# include <QThread>
-# include <QImage>
-# include <opencv/cv.h>
-# include <opencv/highgui.h>
+#include <QThread>
+#include <QImage>
+#include <QtCore>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +31,9 @@ struct buffer {
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
 #define DEV_NAME "/dev/video0"
+
+#define DEF_IMG_WIDTH  320
+#define DEF_IMG_HEIGHT 240
 
 #define USE_DIRECT_V4L2
 
@@ -57,7 +61,8 @@ class CaptureWorker: public QObject
 
     signals :
     void finished();
-    void imageCaptured(QImage image, double timestamp);
+    void imageCaptured(IplImage image);
+    void qimageCaptured(QImage image, double timestamp);
     void message(QString msg);
 
 
@@ -79,10 +84,10 @@ class CaptureWorker: public QObject
 
     //Opencv image
     IplImage frame;
-
+    QImage captFrame;
     bool close;
     double timestamp;
 
 };
 
-#endif // CAPTURETHREAD_H
+#endif // CAPTUREWORKER_H
