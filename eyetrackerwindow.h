@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QMetaType>
 #include <QStandardItemModel>
+#include <QPainter>
 #include "captureWorker.h"
 #include "eyetrackerWorker.h"
 
@@ -35,6 +36,7 @@ public slots:
     void onClosed();
     void onCaptureMessage(QString msg);
     void onTrackerMessage(QString msg);
+    void onEyeFound(int x, int y);
 
 private:
     Ui::EyeTrackerWindow *ui;

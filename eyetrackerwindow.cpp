@@ -25,13 +25,14 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(&captureThread, SIGNAL(finished()), &captureThread, SLOT(deleteLater()));
 
     connect(&captureWorker, SIGNAL(imageCaptured(IplImage)), &eyetrackerWorker, SLOT(onImageCaptured(IplImage)));
+    connect(&eyetrackerWorker, SIGNAL(eyeFound(int,int)), this, SLOT(onEyeFound(int,int)));
+
     connect(&eyetrackerWorker, SIGNAL(finished()), &eyetrackerThread, SLOT(quit()));
     connect(&eyetrackerWorker, SIGNAL(finished()), &eyetrackerWorker, SLOT(deleteLater()));
     connect(&eyetrackerThread, SIGNAL(finished()), &eyetrackerThread, SLOT(deleteLater()));
 
     connect(&captureWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
     connect(&eyetrackerWorker, SIGNAL(message(QString)), this, SLOT(onTrackerMessage(QString)));
-
     connect(ui->quitBtn,SIGNAL(clicked()),this,SLOT(onClosed()));
 
     captureThread.start();
@@ -85,4 +86,9 @@ void EyeTrackerWindow::onClosed()
     captureWorker.stopCapturing();
     captureThread.wait();
     this->close();
+}
+
+void EyeTrackerWindow::onEyeFound(int x, int y)
+{
+    captureWorker.setCenter(x,y);
 }

@@ -28,11 +28,13 @@ class EyeTrackerWorker: public QObject
     signals :
     void finished();
     void message(QString msg);
+    void eyeFound(int x, int y);
 
 
     private:
     bool close;
-
+    CvHaarClassifierCascade* cascade;
+    IplImage grayImg;
 
 };
 

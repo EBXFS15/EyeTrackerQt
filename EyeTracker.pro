@@ -13,9 +13,9 @@ target.path = /home/debian
 INSTALLS += target
 
 TEMPLATE = app
-LIBS +=  -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs\
+LIBS +=  -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_objdetect -lopencv_imgcodecs\
          -lx264 -liconv -lusc -lavcodec -lavformat -lavutil -lswscale -lopencv_videoio\
-         -lv4lconvert -lv4l1 -lv4l2 -lm -lz\
+         -lv4l1 -lv4l2 -lm -lz\
          -L/opt/embedded/bbb/rootfs/usr/lib\
          -L/opt/embedded/bbb/rootfs/usr/local/lib\
          -L/opt/embedded/bbb/rootfs/usr/lib/arm-linux-gnueabihf\

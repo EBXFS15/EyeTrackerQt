@@ -20,8 +20,6 @@
 #include <linux/videodev2.h>
 #include <libv4l1.h>
 #include <libv4l2.h>
-#include <libv4lconvert.h>
-
 
 struct buffer {
         void   *start;
@@ -55,6 +53,7 @@ class CaptureWorker: public QObject
     void stop_capturing(void);
     void print_video_formats(void);
     void disable_camera_optimisation(void);
+    void setCenter(int x, int y);
 
     public slots:
     void process();
@@ -71,11 +70,9 @@ class CaptureWorker: public QObject
     //v4l2 variables and structs
     struct v4l2_capability          cap;
     struct v4l2_format              fmt;
-    struct v4l2_format              destfmt;
     struct v4l2_buffer              buf;
     struct v4l2_requestbuffers      req;
     enum v4l2_buf_type              type;
-    struct v4lconvert_data          *convertData;
     fd_set                          fds;
     struct timeval                  tv;
     int                             r, fd;
@@ -87,6 +84,7 @@ class CaptureWorker: public QObject
     QImage captFrame;
     bool close;
     double timestamp;
+    CvPoint eyeCenter;
 
 };
 

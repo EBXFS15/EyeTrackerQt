@@ -36,7 +36,8 @@ CaptureWorker::CaptureWorker()
     cvInitImageHeader(&frame,cvSize(DEF_IMG_WIDTH,DEF_IMG_HEIGHT),IPL_DEPTH_8U, 3, IPL_ORIGIN_TL, 4 );
     /* Allocate space for RGBA data */
     frame.imageData = (char *)cvAlloc(frame.imageSize);
-    convertData=NULL;
+    eyeCenter.x=-1;
+    eyeCenter.y=-1;
 }
 
 
@@ -92,22 +93,15 @@ int CaptureWorker::getFrameV4l2(void)
         }
 
         //reallocate image data if size changed
-        if(((unsigned long)frame.width != destfmt.fmt.pix.width) || ((unsigned long)frame.height != destfmt.fmt.pix.height))
+        if(((unsigned long)frame.width != fmt.fmt.pix.width) || ((unsigned long)frame.height != fmt.fmt.pix.height))
         {
-            emit message(QString("Change width to:")+QString::number(destfmt.fmt.pix.width));
+            emit message(QString("Change width to:")+QString::number(fmt.fmt.pix.width));
             cvFree(&frame.imageData);
-            cvInitImageHeader( &frame,cvSize(destfmt.fmt.pix.width,destfmt.fmt.pix.height ),
+            cvInitImageHeader( &frame,cvSize(fmt.fmt.pix.width,fmt.fmt.pix.height ),
                                    IPL_DEPTH_8U, 3,IPL_ORIGIN_TL, 4 );
             frame.imageData = (char *)cvAlloc(frame.imageSize);
         }
 
-        if(destfmt.fmt.pix.pixelformat != V4L2_PIX_FMT_BGR24)
-        {
-            destfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
-            v4lconvert_convert(convertData, &fmt, &destfmt,
-                                    (unsigned char *)buffers[buf.index].start, buf.bytesused,
-                                    (unsigned char *)frame.imageData, fmt.fmt.pix.sizeimage);
-        }
         else if(buffers[buf.index].start)
         {
               memcpy((char *)frame.imageData,
@@ -161,24 +155,23 @@ void CaptureWorker::init_device(void)
     emit message("Current Format: ");
     emit message(QString(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
     emit message(QString::number((fmt.fmt.pix_mp.width))+"x"+QString::number((fmt.fmt.pix_mp.height)));
-    destfmt = fmt;
-    destfmt.fmt.pix.width       = DEF_IMG_WIDTH;
-    destfmt.fmt.pix.height      = DEF_IMG_HEIGHT;
-    destfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;//
+    fmt.fmt.pix.width       = DEF_IMG_WIDTH;
+    fmt.fmt.pix.height      = DEF_IMG_HEIGHT;
+    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;//
     //destfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;//
-    destfmt.fmt.pix.field       = V4L2_FIELD_ANY;
-    if(-1 == xioctl(fd, VIDIOC_S_FMT, &destfmt))
+    fmt.fmt.pix.field       = V4L2_FIELD_ANY;
+    if(-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
     {
         emit message(QString("Error setting pixel format"));
         exit(EXIT_FAILURE);
     }
 
-    if (-1 == xioctl (fd, VIDIOC_G_FMT, &destfmt)) {
+    if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt)) {
             emit message(QString("Could not obtain camera format"));
             exit(EXIT_FAILURE);
         }
         emit message("New Format: ");
-        emit message(QString(fcc2s(destfmt.fmt.pix.pixelformat).c_str()));
+        emit message(QString(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
         emit message(QString::number((fmt.fmt.pix_mp.width))+"x"+QString::number((fmt.fmt.pix_mp.height)));
 
     CLEAR(req);
@@ -223,10 +216,6 @@ void CaptureWorker::init_device(void)
 
 void CaptureWorker::close_device(void)
 {
-    if(convertData)
-    {
-        v4lconvert_destroy(convertData);
-    }
     v4l2_close(fd);
 }
 
@@ -239,8 +228,6 @@ void CaptureWorker::open_device(void)
         //perror("Cannot open video capture device");
         exit(EXIT_FAILURE);
     }
-
-    convertData = v4lconvert_create(fd);
 
     CLEAR (cap);
     if (-1 == xioctl (fd, VIDIOC_QUERYCAP, &cap))
@@ -303,13 +290,14 @@ void CaptureWorker::process()
     init_device();
     start_capturing();
     print_video_formats();
-    disable_camera_optimisation();
+    //disable_camera_optimisation();
 
     while( close==false)
     {
         getFrameV4l2();
-        cvCvtColor(&frame, &frame, CV_BGR2RGB);
         emit imageCaptured(frame);
+        //cvCvtColor(&frame, &frame, CV_BGR2RGB);
+        cvDrawCircle(&frame,eyeCenter,20,CV_RGB(0,0,255 ),2);
         captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888).scaled(
                         QSize(640,480));
         emit qimageCaptured(captFrame,timestamp);
@@ -327,7 +315,6 @@ void CaptureWorker::process()
         frame = cvQueryFrame(capture);
         if(frame)
         {
-            cvCvtColor(frame, frame, CV_BGR2RGB);
             double timestamp = cvGetCaptureProperty(capture,CV_CAP_PROP_POS_MSEC);
             captFrame = QImage((const uchar*)frame->imageData, 640, 480, QImage::Format_RGB888).copy();
             emit imageCaptured(captFrame, timestamp);
@@ -342,4 +329,12 @@ void CaptureWorker::process()
 void CaptureWorker::stopCapturing()
 {
     close = true;
+}
+
+void CaptureWorker::setCenter(int x, int y)
+{
+    eyeCenter.x=x;
+    eyeCenter.y=y;
+    emit message (QString("Eye found at x=") + QString::number(x)
+    + QString(" y=") + QString::number(y) + "\n");
 }
