@@ -38,13 +38,14 @@ After:
 OUTPUT_FORMAT(elf32-littlearm)
 GROUP ( libc.so.6 libc_nonshared.a  AS_NEEDED ( ld-linux-armhf.so.3 ) )
 <br/>4) git clone https://github.com/EBXFS15/EyeTrackerQt
-<br/>5) open project in QtCreator and deploy
+<br/>5) copy haarcascade_eye_tree_eyeglasses.xml in /usr/local/bin/ of BBB
+<br/>6) open project in QtCreator and deploy
 
 # ToDos
 - [x] Create startup project to capture webcam
-- [ ] Implement eye tracking algorithm
-  - [ ] Dummy algoritm
-  - [ ] optional: real algorithm
+- [x] Implement eye tracking algorithm
+  - [x] Dummy algoritm
+  - [x] optional: real eye detection algorithm
 - [ ] Fix opencv dependencies
 
 # Troubleshooting
