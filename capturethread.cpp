@@ -1,5 +1,6 @@
 #include "capturethread.h"
 
+
 static int xioctl(int fh, int request, void *arg)
 {
         int r = -ENODEV;;
@@ -19,6 +20,7 @@ CaptureThread::CaptureThread()
     r       = -1;
     fd      = -1;
     i       =  0;
+
     /* Set up Image data */
     cvInitImageHeader(&frame,cvSize(640,480),IPL_DEPTH_8U, 3, IPL_ORIGIN_TL, 4 );
     /* Allocate space for RGBA data */
@@ -68,8 +70,10 @@ int CaptureThread::getFrameV4l2(void)
 //        }
 
         //timestamp = 1000 * buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000;
-        timestamp = buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000000;
 
+        timestamp =  ((buf.timestamp.tv_sec) * 1000000 + buf.timestamp.tv_usec);
+        //qint64 rxTimeStamp = ((gotTime.tv_sec) * 1000000 + gotTime.tv_usec);
+        emit onGotFrame(timestamp);
         xioctl(fd, VIDIOC_QBUF, &buf);
 
         return 1;
@@ -200,7 +204,7 @@ void CaptureThread::run()
         getFrameV4l2();
         cvCvtColor(&frame, &frame, CV_BGR2RGB);
         //double timestamp = cvGetCaptureProperty(capture,CV_CAP_PROP_POS_MSEC);
-        captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888).copy();
+        captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888).copy();        
         emit imageCaptured(captFrame,timestamp);// timestamp);
     }
     stop_capturing();

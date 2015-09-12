@@ -3,7 +3,13 @@
 
 #include <QMainWindow>
 #include <QThread>
+#include <QStandardItem>
 #include "capturethread.h"
+#include <QFile>
+#include <QMessageBox>
+#include <QTextStream>
+#include "time.h"
+#include <sys/time.h>
 
 namespace Ui {
 class EyeTrackerWindow;
@@ -18,13 +24,26 @@ public:
     ~EyeTrackerWindow();
     void updateImage(QPixmap pixmap);
     void getImage();
-    void addTimestamp(double timestamp);
+    void addTimestamp(qint64 timestamp);
+
+    QList<QStandardItem *> prepareRow(const QString &line);
+    long long getFromRowItem(QList<QStandardItem *> rowItems, int position);
+    long long getTimestamp(QList<QStandardItem *> rowItems);
+    long long getId(QList<QStandardItem *> rowItems);
+    long long getDelta(QList<QStandardItem *> rowItems);
+    long long getDelta(QList<QStandardItem *> rowItemsNewer,QList<QStandardItem *> rowItemsOlder);
+    double getDeltaInMs(QList<QStandardItem *> rowItems);
+    double getDeltaInMs(QList<QStandardItem *> rowItemsNewer,QList<QStandardItem *> rowItemsOlder);
+    void readEbxMonitor();
+
+
     QPixmap pixmap;
     CaptureThread captureThread;
-
+    QStandardItemModel *frameMonitor;
 
 public slots:
-    void onCaptured(QImage image,double timestamp);
+    void onCaptured(QImage image,qint64 timestamp);
+    void gotFrame(qint64 timestamp);
     void onClosed();
 
 private:

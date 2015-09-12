@@ -19,6 +19,8 @@
 #include <linux/videodev2.h>
 #include <libv4l1.h>
 #include <libv4l2.h>
+#include <time.h>
+
 
 
 struct buffer {
@@ -50,7 +52,8 @@ class CaptureThread: public QThread
     void stop_capturing(void);
 
     signals :
-    void imageCaptured(QImage image, double timestamp);
+    void imageCaptured(QImage image, qint64 timestamp);
+    void onGotFrame(qint64 id);
 
 
     private:
@@ -71,8 +74,7 @@ class CaptureThread: public QThread
     IplImage frame;
 
     bool m_close;
-    double timestamp;
-
+    qint64 timestamp;
 };
 
 #endif // CAPTURETHREAD_H
