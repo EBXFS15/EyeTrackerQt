@@ -19,8 +19,8 @@ EyeTrackerWorker::~EyeTrackerWorker()
 
 void EyeTrackerWorker::onImageCaptured(IplImage image)
 {
-    //while(!close)
-    //{
+    while(!close)
+    {
         if(cascade!=NULL && processing==true)
         {
             cvCvtColor(&image,&grayImg,CV_RGB2GRAY);
@@ -35,8 +35,8 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
                emit eyeFound(center.x, center.y);
             }
         }
-    //}
-    //emit finished();
+    }
+    emit finished();
 }
 
 void EyeTrackerWorker::abortThread()
