@@ -5,8 +5,7 @@ EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
 
 }
 
-void
-EbxMonitorWorker::updateEbxMonitorData( QStandardItemModel * model, QTreeView * treeView){
+void EbxMonitorWorker::updateEbxMonitorData( QStandardItemModel * model, QTreeView * treeView, qint64 id){
     QStandardItem *invisibleRootItem = model->invisibleRootItem();
     if (invisibleRootItem != 0)
     {
@@ -25,42 +24,12 @@ EbxMonitorWorker::updateEbxMonitorData( QStandardItemModel * model, QTreeView * 
 
                 while(!in.atEnd()) {
 
-                    QString line = in.readLine();
+                    QString line = in.readLine();                    
                     QList<QStandardItem *>  rowItems = prepareRow(line);
-                    if (rowItems.count() > 0)
+                    qint64 idOfLine = getId(rowItems);
+                    if(idOfLine == id)
                     {
-                        QString searchPattern = rowItems.first()->text();
-                        QModelIndexList match = invisibleRootItem->model()->match(
-                                    invisibleRootItem->model()->index(0, 0),
-                                    Qt::DisplayRole,
-                                    QVariant::fromValue(searchPattern),
-                                    1, // look *
-                                    Qt::MatchRecursive);
-                        if (match.count() > 0)
-                        {
-                            QStandardItem * mainNode = model->itemFromIndex(match.first());
-
-                            if (mainNode->rowCount() > 0)
-                            {
-                                double delta = getDeltaInMs(rowItems, mainNode->takeRow(mainNode->rowCount()-1));
-
-                                rowItems << new QStandardItem(QString("%1ms").arg(delta));
-
-                                //long long previousTimestamp = frameMonitor->itemFromIndex(match.first())->takeRow(0)->at(1)->split("us").first().toLongLong();
-                                //long long currentTimestamp = rowItems->at(1)->split("us")->first()->toLongLong();
-                            }
-
-
-                            mainNode->appendRow(rowItems);
-                            for (int i = 0; i <rowItems.count(); i++)
-                            {
-                                treeView->resizeColumnToContents(i);
-                            }
-                            treeView->expand(match.first());
-                        }
-                        else{
-                            invisibleRootItem->appendRow(rowItems);
-                        }
+                        appendRowItems(model, treeView, rowItems);
                     }
                 }
                 file.close();
@@ -80,16 +49,10 @@ EbxMonitorWorker::updateEbxMonitorData( QStandardItemModel * model, QTreeView * 
 }
 
 
-void EbxMonitorWorker::gotNewFrame(QStandardItemModel *model, QTreeView *treeView, qint64 frameId){
-    struct timespec gotTime;
-    clock_gettime(CLOCK_REALTIME_COARSE, &gotTime);
-    qint64 rxTimeStamp = ((gotTime.tv_sec) * 1000000 + gotTime.tv_nsec/1000);
-    updateEbxMonitorData(model, treeView);
+void EbxMonitorWorker::appendRowItems( QStandardItemModel * model, QTreeView * treeView, QList<QStandardItem *>  rowItems){
     QStandardItem *invisibleRootItem = model->invisibleRootItem();
     if (invisibleRootItem != 0)
     {
-        QString line = QString("%1us, %2us, 255").arg(frameId).arg(rxTimeStamp);
-        QList<QStandardItem *>  rowItems = prepareRow(line);
         if (rowItems.count() > 0)
         {
             QString searchPattern = rowItems.first()->text();
@@ -102,24 +65,53 @@ void EbxMonitorWorker::gotNewFrame(QStandardItemModel *model, QTreeView *treeVie
             if (match.count() > 0)
             {
                 QStandardItem * mainNode = model->itemFromIndex(match.first());
+
                 if (mainNode->rowCount() > 0)
                 {
                     double delta = getDeltaInMs(rowItems, mainNode->takeRow(mainNode->rowCount()-1));
-
                     rowItems << new QStandardItem(QString("%1ms").arg(delta));
                 }
-
-                model->itemFromIndex(match.first())->appendRow(rowItems);
-                for (int i = 0; i <rowItems.count(); i++)
+                mainNode->appendRow(rowItems);
+/*                for (int i = 0; i <rowItems.count(); i++)
                 {
                     treeView->resizeColumnToContents(i);
                 }
-                treeView->expand(match.first());
+  */
+                if (mainNode->rowCount() > 1)
+                {
+                    treeView->expand(match.first());
+                    treeView->scrollTo(match.first());
+                }
             }
-            else{
+            else
+            {
                 invisibleRootItem->appendRow(rowItems);
             }
+        }        
+        if(invisibleRootItem->rowCount() < 5){
+            for (int i = 0; i < 4; i++)
+            {
+                treeView->resizeColumnToContents(i);
+            }
         }
+        if(invisibleRootItem->rowCount() >= 90){
+            invisibleRootItem->removeRows(0,invisibleRootItem->rowCount()-90);
+        }
+    }
+    treeView->scrollToBottom();
+}
+
+void EbxMonitorWorker::gotNewFrame(QStandardItemModel *model, QTreeView *treeView, qint64 frameId){
+    struct timespec gotTime;
+    clock_gettime(CLOCK_MONOTONIC, &gotTime);
+    qint64 rxTimeStamp = (((qint64)gotTime.tv_sec) * 1000000 + ((qint64)gotTime.tv_nsec)/1000);
+    updateEbxMonitorData(model, treeView,frameId);
+    QStandardItem *invisibleRootItem = model->invisibleRootItem();
+    if (invisibleRootItem != 0)
+    {
+        QString line = QString("%1us, %2us, 255").arg(frameId).arg(rxTimeStamp);
+        QList<QStandardItem *>  rowItems = prepareRow(line);
+        appendRowItems(model, treeView, rowItems);
     }
 }
 

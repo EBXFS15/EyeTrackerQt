@@ -35,6 +35,8 @@ public:
 
     QStandardItemModel *ebxMonitorModel;
 
+signals:
+    void gotNewFrame(QStandardItemModel *model, QTreeView *treeView, qint64 frameId);
 
 public slots:
     void onCaptured(QImage frame, double timestamp);
@@ -42,6 +44,7 @@ public slots:
     void onCaptureMessage(QString msg);
     void onTrackerMessage(QString msg);
     void onEyeFound(int x, int y);
+    void onGotFrame(qint64 id);
 
 private slots:
     void on_pushButton_pressed();

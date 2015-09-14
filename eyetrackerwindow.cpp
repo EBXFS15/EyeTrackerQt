@@ -20,7 +20,6 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
 
     captureWorker.moveToThread(&captureThread);
     eyetrackerWorker.moveToThread(&eyetrackerThread);
-    ebxMonitorWorker.moveToThread(&ebxMonitorThread);
 
     connect(&captureThread, SIGNAL(started()), &captureWorker, SLOT(process()));
     connect(&captureWorker, SIGNAL(qimageCaptured(QImage, double)), this, SLOT(onCaptured(QImage, double)));
@@ -39,11 +38,15 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(&eyetrackerWorker, SIGNAL(message(QString)), this, SLOT(onTrackerMessage(QString)));
     connect(ui->quitBtn,SIGNAL(clicked()),this,SLOT(onClosed()));
 
-    ui->ebxMonitorTree->setModel(ebxMonitorModel);
+    connect(&captureWorker, SIGNAL(gotFrame(qint64)), this, SLOT(onGotFrame(qint64)));
+    connect(this, SIGNAL(gotNewFrame(QStandardItemModel*,QTreeView*,qint64)), &ebxMonitorWorker,SLOT(gotNewFrame(QStandardItemModel*,QTreeView*,qint64)));
+
+    ui->ebxMonitorTree->setModel(ebxMonitorModel);    
     ui->ebxMonitorTree->show();
 
     captureThread.start();
     eyetrackerThread.start();
+
 }
 
 EyeTrackerWindow::~EyeTrackerWindow()
@@ -88,9 +91,12 @@ void EyeTrackerWindow::onTrackerMessage(QString msg)
 
 void EyeTrackerWindow::onClosed()
 {
-    eyetrackerWorker.abortThread();
-    eyetrackerThread.wait();
+
+    ui->ebxMonitorTree->setModel(new QStandardItemModel);
+    delete ebxMonitorModel;
     captureWorker.stopCapturing();
+    eyetrackerWorker.abortThread();        
+    eyetrackerThread.wait();
     captureThread.wait();
     this->close();
 }
@@ -100,7 +106,34 @@ void EyeTrackerWindow::onEyeFound(int x, int y)
     captureWorker.setCenter(x,y);
 }
 
+void EyeTrackerWindow::onGotFrame(qint64 id)
+{
+    static double avg = -1;
+    static int count = 31;
+    if (count++ > 30){
+        double latency;
+        struct timespec gotTime;
+        clock_gettime(CLOCK_MONOTONIC, &gotTime);
+        qint64 rxTimeStamp = (((qint64)gotTime.tv_sec) * 1000000 + ((qint64)gotTime.tv_nsec)/1000);
+        ui->label_rxtime_txt->setText(QString("%1").arg(rxTimeStamp));
+        latency = (rxTimeStamp-id)/1000;
+        ui->label_latency_txt->setText(QString("%1ms").arg(latency));
+
+        if (avg < 0)
+        {
+            avg = latency;
+        }
+        else
+        {
+            avg = (avg + latency)/2;
+            ui->label_latency_txt_avg->setText(QString("%1ms").arg(avg));
+        }
+        emit gotNewFrame(ebxMonitorModel, ui->ebxMonitorTree, id);
+        count = 0;
+    }
+}
+
 void EyeTrackerWindow::on_pushButton_pressed()
 {
-    ebxMonitorWorker.updateEbxMonitorData(ebxMonitorModel, ui->ebxMonitorTree);
+    //ebxMonitorWorker.updateEbxMonitorData(ebxMonitorModel, ui->ebxMonitorTree);
 }

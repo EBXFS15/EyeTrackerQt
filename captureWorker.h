@@ -63,6 +63,7 @@ class CaptureWorker: public QObject
     void imageCaptured(IplImage image);
     void qimageCaptured(QImage image, double timestamp);
     void message(QString msg);
+    void gotFrame(qint64 id);
 
 
     private:
@@ -85,6 +86,8 @@ class CaptureWorker: public QObject
     bool close;
     double timestamp;
     CvPoint eyeCenter;
+
+    qint64 timestamp2;
 
 };
 

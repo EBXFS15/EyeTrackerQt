@@ -23,6 +23,8 @@ private:
     double getDeltaInMs(QList<QStandardItem *> rowItems);
     double getDeltaInMs(QList<QStandardItem *> rowItemsNewer,QList<QStandardItem *> rowItemsOlder);
 
+    void appendRowItems( QStandardItemModel * model, QTreeView * treeView, QList<QStandardItem *>  rowItems);
+
 public:
     explicit EbxMonitorWorker(QObject *parent = 0);
     ~EbxMonitorWorker();
@@ -30,7 +32,7 @@ public:
 signals:    
 
 public slots:
-    void updateEbxMonitorData(QStandardItemModel * model, QTreeView * treeView);
+    void updateEbxMonitorData(QStandardItemModel * model, QTreeView * treeView, qint64 id);
     void gotNewFrame( QStandardItemModel * model, QTreeView * treeView, qint64 timestamp);
 };
 

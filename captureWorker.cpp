@@ -110,7 +110,8 @@ int CaptureWorker::getFrameV4l2(void)
         }
 
         //timestamp = 1000 * buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000;
-        timestamp = buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000000;
+        timestamp = buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000000;        
+        emit gotFrame(((qint64)buf.timestamp.tv_sec) * 1000000 + ((qint64)buf.timestamp.tv_usec));
 
         xioctl(fd, VIDIOC_QBUF, &buf);
 

@@ -23,10 +23,10 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>370</x>
+      <x>369</x>
       <y>10</y>
-      <width>640</width>
-      <height>480</height>
+      <width>641</width>
+      <height>461</height>
      </rect>
     </property>
     <property name="autoFillBackground">
@@ -61,7 +61,7 @@
       <x>30</x>
       <y>500</y>
       <width>291</width>
-      <height>41</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -72,9 +72,9 @@
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>540</y>
+      <y>520</y>
       <width>291</width>
-      <height>41</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -101,8 +101,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>361</width>
-       <height>409</height>
+       <width>100</width>
+       <height>30</height>
       </rect>
      </property>
      <attribute name="label">
@@ -111,9 +111,9 @@
      <widget class="QLabel" name="label_message">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>0</x>
         <y>0</y>
-        <width>331</width>
+        <width>361</width>
         <height>361</height>
        </rect>
       </property>
@@ -143,9 +143,9 @@
      <widget class="QTreeView" name="ebxMonitorTree">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>0</x>
         <y>0</y>
-        <width>341</width>
+        <width>361</width>
         <height>361</height>
        </rect>
       </property>
@@ -155,14 +155,92 @@
    <widget class="QPushButton" name="pushButton">
     <property name="geometry">
      <rect>
-      <x>380</x>
-      <y>530</y>
-      <width>99</width>
-      <height>27</height>
+      <x>500</x>
+      <y>490</y>
+      <width>191</width>
+      <height>91</height>
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Load ebx_Monitor Data</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_rxtime">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>540</y>
+      <width>161</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Frame rx timestamp:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_rxtime_txt">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>540</y>
+      <width>131</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_latency_txt">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>560</y>
+      <width>131</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_latency">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>560</y>
+      <width>151</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Frame latency:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_latency_avg">
+    <property name="geometry">
+     <rect>
+      <x>330</x>
+      <y>560</y>
+      <width>31</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>avg:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_latency_txt_avg">
+    <property name="geometry">
+     <rect>
+      <x>360</x>
+      <y>560</y>
+      <width>131</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
     </property>
    </widget>
   </widget>
