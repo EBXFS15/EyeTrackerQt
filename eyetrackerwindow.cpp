@@ -63,8 +63,11 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
 
     captureThread.start();
     eyetrackerThread.start();
+<<<<<<< HEAD
     ebxMonitorThread.start();
 
+=======
+>>>>>>> 0508d64a53d9ea88e0cfd7cd4c878ec6d4ec8a73
 }
 
 EyeTrackerWindow::~EyeTrackerWindow()
