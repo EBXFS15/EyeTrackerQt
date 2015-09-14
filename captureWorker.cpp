@@ -291,7 +291,7 @@ void CaptureWorker::process()
     init_device();
     start_capturing();
     print_video_formats();
-    //disable_camera_optimisation();
+    disable_camera_optimisation();
 
     while( close==false)
     {
@@ -299,8 +299,7 @@ void CaptureWorker::process()
         emit imageCaptured(frame);
         //cvCvtColor(&frame, &frame, CV_BGR2RGB);
         cvDrawCircle(&frame,eyeCenter,20,CV_RGB(0,0,255 ),2);
-        captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888).scaled(
-                        QSize(640,480));
+        captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888);
         emit qimageCaptured(captFrame,timestamp);
     }
     stop_capturing();

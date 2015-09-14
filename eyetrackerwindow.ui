@@ -23,10 +23,10 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>369</x>
+      <x>690</x>
       <y>10</y>
-      <width>641</width>
-      <height>461</height>
+      <width>320</width>
+      <height>240</height>
      </rect>
     </property>
     <property name="autoFillBackground">
@@ -86,7 +86,7 @@
      <rect>
       <x>0</x>
       <y>20</y>
-      <width>361</width>
+      <width>671</width>
       <height>471</height>
      </rect>
     </property>
@@ -133,7 +133,7 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>361</width>
+       <width>671</width>
        <height>409</height>
       </rect>
      </property>
@@ -145,7 +145,7 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>361</width>
+        <width>681</width>
         <height>361</height>
        </rect>
       </property>
