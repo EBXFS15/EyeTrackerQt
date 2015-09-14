@@ -48,7 +48,6 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
 
     captureThread.start();
     eyetrackerThread.start();
-
 }
 
 EyeTrackerWindow::~EyeTrackerWindow()
