@@ -9,18 +9,20 @@ EbxMonitorWorker::EbxMonitorWorker(QObject *parent, QStandardItemModel * model, 
 void EbxMonitorWorker::start(){
     stopMonitor = false;
     connect(&timer, SIGNAL (timeout()), this, SLOT (grabfromdriver()));
-    timer.start(1000);
+    timer.start(TIMER_DELAY);
 }
 
 
 void EbxMonitorWorker::grabfromdriver()
 {
+    timer.stop();
     if(!stopMonitor)
     {
         updateEbxMonitorData(-1);
+        timer.start(TIMER_DELAY);
     }
     else
-    {
+    {        
         emit finished();
     }
 }
@@ -31,27 +33,34 @@ void EbxMonitorWorker::stop()
 }
 
 void EbxMonitorWorker::updateEbxMonitorData(qint64 id){
-    if (model != 0 && treeView != 0)
+    if ((0 == model ) || 0 == treeView)
     {
-        QStandardItem *invisibleRootItem = model->invisibleRootItem();
-        if (invisibleRootItem != 0)
+        return;
+    }
+
+    QStandardItem *invisibleRootItem = model->invisibleRootItem();
+    if (invisibleRootItem != 0)
+    {
+        FILE* fd = fopen("/dev/ebx_monitor", "r"); // get a file descriptor somehow
+        if (fd!=0)
         {
-            FILE* fd = fopen("/dev/ebx_monitor", "r"); // get a file descriptor somehow
-            if (fd!=0)
+            QFile file;
+
+            if (!file.open(fd, QIODevice::ReadOnly))
             {
-                QFile file;
 
-                if (!file.open(fd, QIODevice::ReadOnly))
-                {
+            }
+            else
+            {
+                QTextStream in(&file);
 
-                }
-                else
-                {
-                    QTextStream in(&file);
+                while(!in.atEnd()) {
 
-                    while(!in.atEnd()) {
+                    QString content = in.readAll();
+                    QList<QString> lines = content.split(QString("\n"));
+                    foreach (QString line , lines)
+                    {
 
-                        QString line = in.readLine();
                         QList<QStandardItem *>  rowItems = prepareRow(line);
                         qint64 idOfLine = getId(rowItems);
                         if(idOfLine == id || id == -1)
@@ -59,83 +68,67 @@ void EbxMonitorWorker::updateEbxMonitorData(qint64 id){
                             appendRowItems(rowItems);
                         }
                     }
-                    file.close();
-                    fclose(fd);
                 }
-                if(invisibleRootItem->rowCount() == 0){
-                    for (int i = 0; i < 4; i++)
-                    {
-                        treeView->resizeColumnToContents(i);
-                    }
-                }
-                if(invisibleRootItem->rowCount() >= 16){
-                    invisibleRootItem->removeRows(0,invisibleRootItem->rowCount()-16);
-                }
+                file.close();
+                fclose(fd);
+            }
+            if(invisibleRootItem->rowCount() >= 16){
+                invisibleRootItem->removeRows(0,invisibleRootItem->rowCount()-16);
             }
         }
     }
+
 }
 
 
 void EbxMonitorWorker::appendRowItems( QList<QStandardItem *>  rowItems){
-    if (model != 0 && treeView != 0)
+    if ((0 == model ) || 0 == treeView)
     {
-        QStandardItem *invisibleRootItem = model->invisibleRootItem();
-        if (invisibleRootItem != 0)
+        return;
+    }
+    QStandardItem *invisibleRootItem = model->invisibleRootItem();
+    if (invisibleRootItem != 0)
+    {
+        if (rowItems.count() > 0)
         {
-            if (rowItems.count() > 0)
+            QString searchPattern = rowItems.first()->text();
+            QModelIndexList match = invisibleRootItem->model()->match(
+                        invisibleRootItem->model()->index(0, 0),
+                        Qt::DisplayRole,
+                        QVariant::fromValue(searchPattern),
+                        1, // look *
+                        Qt::MatchRecursive);
+            if (match.count() > 0)
             {
-                QString searchPattern = rowItems.first()->text();
-                QModelIndexList match = invisibleRootItem->model()->match(
-                            invisibleRootItem->model()->index(0, 0),
-                            Qt::DisplayRole,
-                            QVariant::fromValue(searchPattern),
-                            1, // look *
-                            Qt::MatchRecursive);
-                if (match.count() > 0)
+                QStandardItem * mainNode = model->itemFromIndex(match.first());
+
+                if (mainNode->rowCount() > 0)
                 {
-                    QStandardItem * mainNode = model->itemFromIndex(match.first());
-
-                    if (mainNode->rowCount() > 0)
-                    {
-                        double delta = getDeltaInMs(rowItems, mainNode->takeRow(mainNode->rowCount()-1));
-                        rowItems << new QStandardItem(QString("%1ms").arg(delta));
-                    }
-                    mainNode->appendRow(rowItems);
-    /*                for (int i = 0; i <rowItems.count(); i++)
-                    {
-                        treeView->resizeColumnToContents(i);
-                    }
-      */
-
+                    double delta = getDeltaInMs(rowItems, mainNode->takeRow(mainNode->rowCount()-1));
+                    rowItems << new QStandardItem(QString("%1ms").arg(delta));
                 }
-                else
+                mainNode->appendRow(rowItems);
+                treeView->expand(mainNode->index());
+                for (int i = 0; i < model->columnCount(); i++)
                 {
-                    invisibleRootItem->appendRow(rowItems);
-                    /*
-                    if (treeView->children().count()>0){
-                        treeView->expandAll();
-                        for (int i = 0; i < 4; i++)
-                        {
-                            treeView->resizeColumnToContents(i);
-                        }
-                    }*/
+                    treeView->resizeColumnToContents(1);
                 }
             }
-
-            if(invisibleRootItem->rowCount() >= 30){
-                invisibleRootItem->removeRows(0,invisibleRootItem->rowCount()-30);
+            else
+            {
+                invisibleRootItem->appendRow(rowItems);
             }
         }
-        //treeView->scrollToBottom();
+        if(invisibleRootItem->rowCount() >= 30){
+            invisibleRootItem->removeRows(0,invisibleRootItem->rowCount()-30);
+        }
     }
 }
 
 void EbxMonitorWorker::gotNewFrame(qint64 frameId){
-    struct timespec gotTime;
+    struct timespec gotTime;    
     clock_gettime(CLOCK_MONOTONIC, &gotTime);
     qint64 rxTimeStamp = (((qint64)gotTime.tv_sec) * 1000000 + ((qint64)gotTime.tv_nsec)/1000);
-    //updateEbxMonitorData(model, treeView,frameId);
     QStandardItem *invisibleRootItem = model->invisibleRootItem();
     if (invisibleRootItem != 0)
     {
@@ -244,6 +237,7 @@ QList<QStandardItem *> EbxMonitorWorker::prepareRow(const QString &line)
 
 EbxMonitorWorker::~EbxMonitorWorker()
 {
-
+    this->model = 0;
+    this->treeView = 0;
 }
 

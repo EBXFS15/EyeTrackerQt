@@ -37,7 +37,9 @@ public:
 
 signals:
     void gotNewFrame(qint64 frameId);
-    void stop();
+    void stopEbxMonitor();
+    void stopEbxCaptureWorker();
+    void stopEbxEyeTracker();
 
 public slots:
     void onCaptured(QImage frame, double timestamp);

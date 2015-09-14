@@ -20,9 +20,9 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
 
     ebxMonitorWorker = new EbxMonitorWorker(0,ebxMonitorModel,ui->ebxMonitorTree);
 
-    connect(this, SIGNAL(stop()),ebxMonitorWorker, SLOT(stop()));
-    connect(this, SIGNAL(stop()),&captureWorker, SLOT(stopCapturing()));
-    connect(this, SIGNAL(stop()),&eyetrackerWorker, SLOT(abortThread()));
+    connect(this, SIGNAL(stopEbxMonitor()),ebxMonitorWorker, SLOT(stop()));
+    connect(this, SIGNAL(stopEbxCaptureWorker()),&captureWorker, SLOT(stopCapturing()));
+    connect(this, SIGNAL(stopEbxEyeTracker()),&eyetrackerWorker, SLOT(abortThread()));
 
     connect(&captureThread, SIGNAL(started()), &captureWorker, SLOT(process()));
     connect(&captureWorker, SIGNAL(qimageCaptured(QImage, double)), this, SLOT(onCaptured(QImage, double)));
@@ -112,7 +112,9 @@ void EyeTrackerWindow::onClosed()
 {
 
     ui->ebxMonitorTree->setModel(new QStandardItemModel);
-    emit stop();
+    emit stopEbxCaptureWorker();
+    emit stopEbxEyeTracker();
+    emit stopEbxMonitor();
     /*captureWorker.stopCapturing();
     eyetrackerWorker.abortThread();
 */
@@ -125,8 +127,12 @@ void EyeTrackerWindow::onClosed()
         eyetrackerThread.exit();
         eyetrackerThread.wait(100);
     }
-    //eyetrackerThread.wait();
-    captureThread.wait();
+
+    while (captureThread.isRunning()) {
+        captureThread.exit();
+        captureThread.wait(100);
+    }
+
     delete ebxMonitorWorker;
     delete ebxMonitorModel;
     this->close();

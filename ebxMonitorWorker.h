@@ -12,6 +12,9 @@
 #include "time.h"
 #include <sys/time.h>
 
+
+#define TIMER_DELAY 500
+
 class EbxMonitorWorker : public QObject
 {
     Q_OBJECT    
@@ -20,7 +23,7 @@ private:
     QStandardItemModel * model;
     QTreeView * treeView;
     QList<QStandardItem *> prepareRow(const QString &line);
-    bool stopMonitor;
+    QAtomicInt stopMonitor;
     QTimer timer;
 
     long long getFromRowItem(QList<QStandardItem *> rowItems, int position);
