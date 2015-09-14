@@ -45,6 +45,8 @@ public slots:
     void onTrackerMessage(QString msg);
     void onEyeFound(int x, int y);
     void onGotFrame(qint64 id);
+    void togglePreview();
+    void toggleProcessing();
 
 private slots:
     void on_pushButton_pressed();

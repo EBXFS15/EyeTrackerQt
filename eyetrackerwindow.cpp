@@ -37,6 +37,8 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(&captureWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
     connect(&eyetrackerWorker, SIGNAL(message(QString)), this, SLOT(onTrackerMessage(QString)));
     connect(ui->quitBtn,SIGNAL(clicked()),this,SLOT(onClosed()));
+    connect(ui->btn_disable_preview,SIGNAL(clicked()),this,SLOT(togglePreview()));
+    connect(ui->btn_disable_processing,SIGNAL(clicked()),this,SLOT(toggleProcessing()));
 
     connect(&captureWorker, SIGNAL(gotFrame(qint64)), this, SLOT(onGotFrame(qint64)));
     connect(this, SIGNAL(gotNewFrame(QStandardItemModel*,QTreeView*,qint64)), &ebxMonitorWorker,SLOT(gotNewFrame(QStandardItemModel*,QTreeView*,qint64)));
@@ -104,6 +106,16 @@ void EyeTrackerWindow::onClosed()
 void EyeTrackerWindow::onEyeFound(int x, int y)
 {
     captureWorker.setCenter(x,y);
+}
+
+void EyeTrackerWindow::togglePreview()
+{
+    captureWorker.togglePreview();
+}
+
+void EyeTrackerWindow::toggleProcessing()
+{
+    eyetrackerWorker.toggleProcessing();
 }
 
 void EyeTrackerWindow::onGotFrame(qint64 id)

@@ -29,6 +29,7 @@ static std::string fcc2s(unsigned int val)
 CaptureWorker::CaptureWorker()
 {
     close = false;
+    preview=true;
     r       = -1;
     fd      = -1;
     i       =  0;
@@ -298,9 +299,12 @@ void CaptureWorker::process()
         getFrameV4l2();
         emit imageCaptured(frame);
         //cvCvtColor(&frame, &frame, CV_BGR2RGB);
-        cvDrawCircle(&frame,eyeCenter,20,CV_RGB(0,0,255 ),2);
-        captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888);
-        emit qimageCaptured(captFrame,timestamp);
+        if(preview==true)
+        {
+            cvDrawCircle(&frame,eyeCenter,20,CV_RGB(0,0,255 ),2);
+            captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888);
+            emit qimageCaptured(captFrame,timestamp);
+        }
     }
     stop_capturing();
     uninit_device();
@@ -337,4 +341,9 @@ void CaptureWorker::setCenter(int x, int y)
     eyeCenter.y=y;
     emit message (QString("Eye found at x=") + QString::number(x)
     + QString(" y=") + QString::number(y) + "\n");
+}
+
+void CaptureWorker::togglePreview()
+{
+    preview = !preview;
 }

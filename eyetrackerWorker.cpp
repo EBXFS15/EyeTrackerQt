@@ -5,6 +5,7 @@ using namespace cv;
 EyeTrackerWorker::EyeTrackerWorker()
 {
     close = false;
+    processing=true;
     cascade = NULL;
     cascade = (CvHaarClassifierCascade*)cvLoad("/usr/local/bin/haarcascade_eye_tree_eyeglasses.xml");
     cvInitImageHeader(&grayImg,cvSize(320,240),IPL_DEPTH_8U, 1, IPL_ORIGIN_TL, 4 );
@@ -20,7 +21,7 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
 {
     while(!close)
     {
-        if(cascade!=NULL)
+        if(cascade!=NULL && processing==true)
         {
             cvCvtColor(&image,&grayImg,CV_RGB2GRAY);
             CvMemStorage *storage = cvCreateMemStorage(0);
@@ -41,4 +42,10 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
 void EyeTrackerWorker::abortThread()
 {
     close = true;
+}
+
+
+void EyeTrackerWorker::toggleProcessing()
+{
+    processing = !processing;
 }

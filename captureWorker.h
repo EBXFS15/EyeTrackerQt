@@ -54,6 +54,7 @@ class CaptureWorker: public QObject
     void print_video_formats(void);
     void disable_camera_optimisation(void);
     void setCenter(int x, int y);
+    void togglePreview();
 
     public slots:
     void process();
@@ -84,6 +85,7 @@ class CaptureWorker: public QObject
     IplImage frame;
     QImage captFrame;
     bool close;
+    bool preview;
     double timestamp;
     CvPoint eyeCenter;
 

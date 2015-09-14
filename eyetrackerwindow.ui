@@ -91,7 +91,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <property name="tabSpacing">
      <number>6</number>
@@ -101,8 +101,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>100</width>
-       <height>30</height>
+       <width>671</width>
+       <height>409</height>
       </rect>
      </property>
      <attribute name="label">
@@ -113,7 +113,7 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>361</width>
+        <width>671</width>
         <height>361</height>
        </rect>
       </property>
@@ -155,9 +155,9 @@
    <widget class="QPushButton" name="pushButton">
     <property name="geometry">
      <rect>
-      <x>500</x>
-      <y>490</y>
-      <width>191</width>
+      <x>460</x>
+      <y>500</y>
+      <width>181</width>
       <height>91</height>
      </rect>
     </property>
@@ -241,6 +241,34 @@
     </property>
     <property name="text">
      <string>0</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_disable_processing">
+    <property name="geometry">
+     <rect>
+      <x>660</x>
+      <y>500</y>
+      <width>99</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Toggle
+Processing</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_disable_preview">
+    <property name="geometry">
+     <rect>
+      <x>770</x>
+      <y>500</y>
+      <width>99</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Toggle
+Preview</string>
     </property>
    </widget>
   </widget>

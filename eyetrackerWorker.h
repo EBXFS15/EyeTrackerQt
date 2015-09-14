@@ -21,6 +21,7 @@ class EyeTrackerWorker: public QObject
     EyeTrackerWorker();
     ~EyeTrackerWorker();
     void abortThread();
+    void toggleProcessing();
 
     public slots:
     void onImageCaptured(IplImage image);
@@ -33,6 +34,7 @@ class EyeTrackerWorker: public QObject
 
     private:
     bool close;
+    bool processing;
     CvHaarClassifierCascade* cascade;
     IplImage grayImg;
 
