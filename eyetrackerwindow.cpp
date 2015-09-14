@@ -18,8 +18,11 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
 
     ebxMonitorModel = new QStandardItemModel;
 
-    captureWorker.moveToThread(&captureThread);
-    eyetrackerWorker.moveToThread(&eyetrackerThread);
+    ebxMonitorWorker = new EbxMonitorWorker(0,ebxMonitorModel,ui->ebxMonitorTree);
+
+    connect(this, SIGNAL(stop()),ebxMonitorWorker, SLOT(stop()));
+    connect(this, SIGNAL(stop()),&captureWorker, SLOT(stopCapturing()));
+    connect(this, SIGNAL(stop()),&eyetrackerWorker, SLOT(abortThread()));
 
     connect(&captureThread, SIGNAL(started()), &captureWorker, SLOT(process()));
     connect(&captureWorker, SIGNAL(qimageCaptured(QImage, double)), this, SLOT(onCaptured(QImage, double)));
@@ -41,13 +44,26 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(ui->btn_disable_processing,SIGNAL(clicked()),this,SLOT(toggleProcessing()));
 
     connect(&captureWorker, SIGNAL(gotFrame(qint64)), this, SLOT(onGotFrame(qint64)));
-    connect(this, SIGNAL(gotNewFrame(QStandardItemModel*,QTreeView*,qint64)), &ebxMonitorWorker,SLOT(gotNewFrame(QStandardItemModel*,QTreeView*,qint64)));
+    connect(this, SIGNAL(gotNewFrame(qint64)), ebxMonitorWorker,SLOT(gotNewFrame(qint64)));
 
-    ui->ebxMonitorTree->setModel(ebxMonitorModel);    
+    connect(&ebxMonitorThread, SIGNAL(started()), ebxMonitorWorker,SLOT(start()));
+    connect(ebxMonitorWorker, SIGNAL(finished()), ebxMonitorWorker, SLOT(deleteLater()));
+
+
+
+
+    ui->ebxMonitorTree->setModel(ebxMonitorModel);
     ui->ebxMonitorTree->show();
+
+    captureWorker.moveToThread(&captureThread);
+    eyetrackerWorker.moveToThread(&eyetrackerThread);
+    ebxMonitorWorker->moveToThread(&ebxMonitorThread);
+
+
 
     captureThread.start();
     eyetrackerThread.start();
+    ebxMonitorThread.start();
 
 }
 
@@ -95,11 +111,23 @@ void EyeTrackerWindow::onClosed()
 {
 
     ui->ebxMonitorTree->setModel(new QStandardItemModel);
-    delete ebxMonitorModel;
-    captureWorker.stopCapturing();
-    eyetrackerWorker.abortThread();        
-    eyetrackerThread.wait();
+    emit stop();
+    /*captureWorker.stopCapturing();
+    eyetrackerWorker.abortThread();
+*/
+    while (ebxMonitorThread.isRunning()) {
+        ebxMonitorThread.exit();
+        ebxMonitorThread.wait(100);
+    }
+
+    while (eyetrackerThread.isRunning()) {
+        eyetrackerThread.exit();
+        eyetrackerThread.wait(100);
+    }
+    //eyetrackerThread.wait();
     captureThread.wait();
+    delete ebxMonitorWorker;
+    delete ebxMonitorModel;
     this->close();
 }
 
@@ -140,7 +168,7 @@ void EyeTrackerWindow::onGotFrame(qint64 id)
             avg = (avg + latency)/2;
             ui->label_latency_txt_avg->setText(QString("%1ms").arg(avg));
         }
-        emit gotNewFrame(ebxMonitorModel, ui->ebxMonitorTree, id);
+        emit gotNewFrame(id);
         count = 0;
     }
 }

@@ -28,7 +28,7 @@ public:
     QPixmap pixmap;
     CaptureWorker captureWorker;
     EyeTrackerWorker eyetrackerWorker;
-    EbxMonitorWorker ebxMonitorWorker;
+    EbxMonitorWorker  * ebxMonitorWorker;
     QThread captureThread;
     QThread eyetrackerThread;    
     QThread ebxMonitorThread;
@@ -36,7 +36,8 @@ public:
     QStandardItemModel *ebxMonitorModel;
 
 signals:
-    void gotNewFrame(QStandardItemModel *model, QTreeView *treeView, qint64 frameId);
+    void gotNewFrame(qint64 frameId);
+    void stop();
 
 public slots:
     void onCaptured(QImage frame, double timestamp);

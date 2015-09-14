@@ -323,6 +323,7 @@ void CaptureWorker::process()
             captFrame = QImage((const uchar*)frame->imageData, 640, 480, QImage::Format_RGB888).copy();
             emit imageCaptured(captFrame, timestamp);
         }
+        sleep(1);
     }
 
     cvReleaseCapture( &capture );

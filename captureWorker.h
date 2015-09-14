@@ -43,7 +43,7 @@ class CaptureWorker: public QObject
     CaptureWorker();
     ~CaptureWorker();
     void run();
-    void stopCapturing();
+
     int getFrameV4l2(void);
     void open_device(void);
     void close_device(void);
@@ -58,6 +58,7 @@ class CaptureWorker: public QObject
 
     public slots:
     void process();
+    void stopCapturing();
 
     signals :
     void finished();

@@ -7,14 +7,22 @@
 #include <QTextStream>
 #include <QStandardItem>
 #include <QTreeView>
+#include <QThread>
+#include <QTimer>
 #include "time.h"
 #include <sys/time.h>
 
 class EbxMonitorWorker : public QObject
 {
-    Q_OBJECT
+    Q_OBJECT    
+
 private:
+    QStandardItemModel * model;
+    QTreeView * treeView;
     QList<QStandardItem *> prepareRow(const QString &line);
+    bool stopMonitor;
+    QTimer timer;
+
     long long getFromRowItem(QList<QStandardItem *> rowItems, int position);
     long long getTimestamp(QList<QStandardItem *> rowItems);
     long long getId(QList<QStandardItem *> rowItems);
@@ -23,17 +31,22 @@ private:
     double getDeltaInMs(QList<QStandardItem *> rowItems);
     double getDeltaInMs(QList<QStandardItem *> rowItemsNewer,QList<QStandardItem *> rowItemsOlder);
 
-    void appendRowItems( QStandardItemModel * model, QTreeView * treeView, QList<QStandardItem *>  rowItems);
+    void appendRowItems( QList<QStandardItem *>  rowItems);
 
 public:
-    explicit EbxMonitorWorker(QObject *parent = 0);
+    explicit EbxMonitorWorker(QObject *parent = 0, QStandardItemModel *model = 0, QTreeView *treeView = 0);
     ~EbxMonitorWorker();
 
-signals:    
+signals:
+    void finished();
 
 public slots:
-    void updateEbxMonitorData(QStandardItemModel * model, QTreeView * treeView, qint64 id);
-    void gotNewFrame( QStandardItemModel * model, QTreeView * treeView, qint64 timestamp);
+    void updateEbxMonitorData( qint64 id);
+    void gotNewFrame(qint64 timestamp);
+    void grabfromdriver();
+    void stop();
+    void start();
 };
 
 #endif // EBXMONITORWORKER_H
+
