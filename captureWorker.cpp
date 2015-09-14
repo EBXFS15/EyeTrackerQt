@@ -55,7 +55,7 @@ int CaptureWorker::getFrameV4l2(void)
         }
         while ((r == -1 && (errno = EINTR)));
 
-        if (-1 == r)
+        if (0 > r)
         {
             if (EINTR == errno)
             {
@@ -334,6 +334,7 @@ void CaptureWorker::process()
 void CaptureWorker::stopCapturing()
 {
     close = true;
+    stop_capturing();
 }
 
 void CaptureWorker::setCenter(int x, int y)

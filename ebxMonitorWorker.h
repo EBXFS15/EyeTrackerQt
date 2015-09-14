@@ -11,6 +11,7 @@
 #include <QTimer>
 #include "time.h"
 #include <sys/time.h>
+#include <QMutex>
 
 
 #define TIMER_DELAY 500
@@ -25,6 +26,7 @@ private:
     QList<QStandardItem *> prepareRow(const QString &line);
     QAtomicInt stopMonitor;
     QTimer timer;
+    QMutex treeViewMutex;
 
     long long getFromRowItem(QList<QStandardItem *> rowItems, int position);
     long long getTimestamp(QList<QStandardItem *> rowItems);
@@ -34,7 +36,7 @@ private:
     double getDeltaInMs(QList<QStandardItem *> rowItems);
     double getDeltaInMs(QList<QStandardItem *> rowItemsNewer,QList<QStandardItem *> rowItemsOlder);
 
-    void appendRowItems( QList<QStandardItem *>  rowItems);
+    void appendRowItems(QList<QStandardItem *> rowItems);
 
 public:
     explicit EbxMonitorWorker(QObject *parent = 0, QStandardItemModel *model = 0, QTreeView *treeView = 0);
