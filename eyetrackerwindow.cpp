@@ -1,6 +1,7 @@
 #include "eyetrackerwindow.h"
 #include "ui_eyetrackerwindow.h"
 
+
 using namespace cv;
 
 
@@ -17,25 +18,37 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     timestamp = -1;
 
     ebxMonitorModel = new QStandardItemModel;
-
     ebxMonitorWorker = new EbxMonitorWorker(0,ebxMonitorModel,ui->ebxMonitorTree);
 
+    /** Signals to stop the workers. Some are less relevant but it seems to be better to do it this way. */
     connect(this, SIGNAL(stopEbxMonitor()),ebxMonitorWorker, SLOT(stop()));
-    connect(this, SIGNAL(stopEbxCaptureWorker()),&captureWorker, SLOT(stopCapturing()));
     connect(this, SIGNAL(stopEbxEyeTracker()),&eyetrackerWorker, SLOT(abortThread()));
+    connect(this, SIGNAL(stopEbxCaptureWorker()),&captureWorker, SLOT(stopCapturing()));
+
+
+    /** This is absolutely needed. Informs the Thread that the work is done. **/
+    connect(ebxMonitorWorker, SIGNAL(finished()),&ebxMonitorThread, SLOT(quit()));
+    connect(&captureWorker, SIGNAL(finished()), &captureThread, SLOT(quit()));
+    connect(&eyetrackerWorker, SIGNAL(finished()), &eyetrackerThread, SLOT(quit()));
+
 
     connect(&captureThread, SIGNAL(started()), &captureWorker, SLOT(process()));
     connect(&captureWorker, SIGNAL(qimageCaptured(QImage, double)), this, SLOT(onCaptured(QImage, double)));
-    connect(&captureWorker, SIGNAL(finished()), &captureThread, SLOT(quit()));
-    connect(&captureWorker, SIGNAL(finished()), &captureWorker, SLOT(deleteLater()));
-    connect(&captureThread, SIGNAL(finished()), &captureThread, SLOT(deleteLater()));
+
+    /**
+     * I don't know why we should delete something that is handled by QT anyway
+     * Main reason behind is that if I understand it correctly these objects are part of the parent object variables.
+     * The delete later concept is found in examples where the thread is created dynamically.
+     * I think this is not needed.
+     */
+    //connect(&captureWorker, SIGNAL(finished()), &captureWorker, SLOT(deleteLater()));
+    //connect(&captureThread, SIGNAL(finished()), &captureThread, SLOT(deleteLater()));
+    //connect(&eyetrackerWorker, SIGNAL(finished()), &eyetrackerWorker, SLOT(deleteLater()));
+    //connect(&eyetrackerThread, SIGNAL(finished()), &eyetrackerThread, SLOT(deleteLater()));
 
     connect(&captureWorker, SIGNAL(imageCaptured(IplImage)), &eyetrackerWorker, SLOT(onImageCaptured(IplImage)));
     connect(&eyetrackerWorker, SIGNAL(eyeFound(int,int)), this, SLOT(onEyeFound(int,int)));
 
-    connect(&eyetrackerWorker, SIGNAL(finished()), &eyetrackerThread, SLOT(quit()));
-    connect(&eyetrackerWorker, SIGNAL(finished()), &eyetrackerWorker, SLOT(deleteLater()));
-    connect(&eyetrackerThread, SIGNAL(finished()), &eyetrackerThread, SLOT(deleteLater()));
 
     connect(&captureWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
     connect(&eyetrackerWorker, SIGNAL(message(QString)), this, SLOT(onTrackerMessage(QString)));
@@ -45,12 +58,8 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
 
     connect(&captureWorker, SIGNAL(gotFrame(qint64)), this, SLOT(onGotFrame(qint64)));
     connect(this, SIGNAL(gotNewFrame(qint64)), ebxMonitorWorker,SLOT(gotNewFrame(qint64)));
-
-    connect(&ebxMonitorThread, SIGNAL(started()), ebxMonitorWorker,SLOT(start()));
+    connect(&ebxMonitorThread, SIGNAL(started()), ebxMonitorWorker,SLOT(startGrabbing()));
     connect(ebxMonitorWorker, SIGNAL(finished()), ebxMonitorWorker, SLOT(deleteLater()));
-
-
-
 
     ui->ebxMonitorTree->setModel(ebxMonitorModel);
     ui->ebxMonitorTree->show();
@@ -58,7 +67,6 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     captureWorker.moveToThread(&captureThread);
     eyetrackerWorker.moveToThread(&eyetrackerThread);
     ebxMonitorWorker->moveToThread(&ebxMonitorThread);
-
 
 
     captureThread.start();
@@ -99,42 +107,40 @@ void EyeTrackerWindow::onCaptured(QImage captFrame, double timestamp)
 
 void EyeTrackerWindow::onCaptureMessage(QString msg)
 {
-    ui->label_message->setText(ui->label_message->text() + msg + "\n");
+
+    int cropPosition = 0;
+    while (ui->label_message->text().split("\n").count() > 15)
+    {
+        cropPosition = ui->label_message->text().indexOf("\n",cropPosition) + 1;
+        if (cropPosition > 0)
+        {
+            ui->label_message->setText(ui->label_message->text().mid(cropPosition));
+        }
+    }
+    ui->label_message->setText(ui->label_message->text().mid(cropPosition) + msg + "\n");
 }
 
 void EyeTrackerWindow::onTrackerMessage(QString msg)
 {
-    ui->label_message->setText(ui->label_message->text() + msg + "\n");
+    onCaptureMessage(msg);
 }
 
 
 void EyeTrackerWindow::onClosed()
 {
 
-    ui->ebxMonitorTree->setModel(new QStandardItemModel);
-    emit stopEbxCaptureWorker();
-    emit stopEbxEyeTracker();
+    ui->ebxMonitorTree->setModel(new QStandardItemModel);    
     emit stopEbxMonitor();
-    /*captureWorker.stopCapturing();
-    eyetrackerWorker.abortThread();
-*/
-    while (ebxMonitorThread.isRunning()) {
-        ebxMonitorThread.exit();
-        ebxMonitorThread.wait(100);
-    }
+    ebxMonitorThread.exit();
+    ebxMonitorThread.wait();
+    ebxMonitorModel->deleteLater();
 
-    while (eyetrackerThread.isRunning()) {
-        eyetrackerThread.exit();
-        eyetrackerThread.wait(100);
-    }
+    emit stopEbxEyeTracker();
+    emit stopEbxCaptureWorker();
 
-    while (captureThread.isRunning()) {
-        captureThread.exit();
-        captureThread.wait(100);
-    }
+    captureThread.wait();
+    eyetrackerThread.wait();
 
-    delete ebxMonitorWorker;
-    delete ebxMonitorModel;
     this->close();
 }
 
@@ -156,8 +162,8 @@ void EyeTrackerWindow::toggleProcessing()
 void EyeTrackerWindow::onGotFrame(qint64 id)
 {
     static double avg = -1;
-    static int count = 31;
-    if (count++ > 30){
+    static int count = 11;
+    if (count++ > 20){
         double latency;
         struct timespec gotTime;
         clock_gettime(CLOCK_MONOTONIC, &gotTime);

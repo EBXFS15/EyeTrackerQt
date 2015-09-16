@@ -27,12 +27,12 @@ public:
     QImage captFrame;
     QPixmap pixmap;
     CaptureWorker captureWorker;
-    EyeTrackerWorker eyetrackerWorker;
-    EbxMonitorWorker  * ebxMonitorWorker;
+    EyeTrackerWorker eyetrackerWorker;    
     QThread captureThread;
     QThread eyetrackerThread;    
-    QThread ebxMonitorThread;
 
+    EbxMonitorWorker  * ebxMonitorWorker;
+    QThread ebxMonitorThread;
     QStandardItemModel *ebxMonitorModel;
 
 signals:

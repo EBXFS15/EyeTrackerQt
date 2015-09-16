@@ -85,7 +85,7 @@ class CaptureWorker: public QObject
     //Opencv image
     IplImage frame;
     QImage captFrame;
-    bool close;
+    QAtomicInt close;
     bool preview;
     double timestamp;
     CvPoint eyeCenter;

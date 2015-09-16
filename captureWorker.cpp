@@ -28,7 +28,7 @@ static std::string fcc2s(unsigned int val)
 
 CaptureWorker::CaptureWorker()
 {
-    close = false;
+    close = 0;
     preview=true;
     r       = -1;
     fd      = -1;
@@ -51,7 +51,7 @@ int CaptureWorker::getFrameV4l2(void)
             /* Timeout. */
             tv.tv_sec = 2;
             tv.tv_usec = 0;
-            r = select(fd + 1, &fds, NULL, NULL, &tv);
+            r = select(fd + 1, &fds, NULL, NULL, &tv);         
         }
         while ((r == -1 && (errno = EINTR)));
 
@@ -125,6 +125,10 @@ void CaptureWorker::stop_capturing(void)
     if(-1 == xioctl(fd, VIDIOC_STREAMOFF, &type))
     {
         emit message(QString("cannot stop video stream"));
+    }
+    else
+    {
+        emit message(QString("stream was stopped"));
     }
 }
 
@@ -283,6 +287,12 @@ void CaptureWorker::disable_camera_optimisation()
 
 CaptureWorker::~CaptureWorker()
 {
+    /**
+      * It surprises me that we have nothing to cleanup here.
+      * I think the buffer cleanup may be placed here.
+      **/
+    uninit_device();
+    v4l2_close(fd);
 }
 
 void CaptureWorker::process()
@@ -294,7 +304,7 @@ void CaptureWorker::process()
     print_video_formats();
     disable_camera_optimisation();
 
-    while( close==false)
+    while( close==0)
     {
         getFrameV4l2();
         emit imageCaptured(frame);
@@ -305,10 +315,11 @@ void CaptureWorker::process()
             captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888);
             emit qimageCaptured(captFrame,timestamp);
         }
+        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
     }
     stop_capturing();
     uninit_device();
-    close_device();
+    close_device();    
     emit finished();
     #else
     CvCapture* capture = cvCreateCameraCapture( -1 );
@@ -333,8 +344,11 @@ void CaptureWorker::process()
 
 void CaptureWorker::stopCapturing()
 {
-    close = true;
-    stop_capturing();
+    emit message(QString("Application requested QUIT"));
+    close = 1;
+
+    /* This is called twice (after the close becomes 1) therefore I commented it out here */
+    //stop_capturing();
 }
 
 void CaptureWorker::setCenter(int x, int y)

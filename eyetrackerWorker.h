@@ -34,8 +34,8 @@ class EyeTrackerWorker: public QObject
 
 
     private:
-    bool close;
-    bool processing;
+    QAtomicInt close;
+    QAtomicInt processing;
     CvHaarClassifierCascade* cascade;
     IplImage grayImg;
 

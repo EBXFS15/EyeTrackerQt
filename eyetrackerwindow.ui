@@ -85,13 +85,13 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>20</y>
+      <y>10</y>
       <width>671</width>
       <height>471</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <property name="tabSpacing">
      <number>6</number>
@@ -141,6 +141,9 @@
       <string>ebx-monitor</string>
      </attribute>
      <widget class="QTreeView" name="ebxMonitorTree">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="geometry">
        <rect>
         <x>0</x>
