@@ -31,12 +31,14 @@ SOURCES += main.cpp\
         v4l2camera.cpp \
     captureWorker.cpp \
     eyetrackerWorker.cpp \
-    ebxMonitorWorker.cpp
+    ebxMonitorWorker.cpp \
+    timestamp.cpp
 
 HEADERS  += eyetrackerwindow.h \
     captureWorker.h \
     eyetrackerWorker.h \
-    ebxMonitorWorker.h
+    ebxMonitorWorker.h \
+    timestamp.h
 
 FORMS    += eyetrackerwindow.ui
 

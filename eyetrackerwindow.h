@@ -10,6 +10,9 @@
 #include "eyetrackerWorker.h"
 #include "ebxMonitorWorker.h"
 
+
+#define INTERCEPTION_FRAME_COUNT 10
+
 namespace Ui {
 class EyeTrackerWindow;
 }
@@ -24,19 +27,26 @@ public:
     void updateImage(QPixmap pixmap);
     void getImage();
     void addTimestamp(double timestamp);
+    void cleanEbxMonitorTree();
+    void setupEbxMonitorTree();
+
     QImage captFrame;
     QPixmap pixmap;
     CaptureWorker captureWorker;
     EyeTrackerWorker eyetrackerWorker;    
     QThread captureThread;
     QThread eyetrackerThread;    
+    QThread ebxMonitorThread;
 
     EbxMonitorWorker  * ebxMonitorWorker;
-    QThread ebxMonitorThread;
+
     QStandardItemModel *ebxMonitorModel;
+    QList<QStandardItem * > createdStandardItems;
+
 
 signals:
-    void gotNewFrame(qint64 frameId);
+    void gotNewFrame(qint64 frameId, int position);
+    void startIntercept();
     void stopEbxMonitor();
     void stopEbxCaptureWorker();
     void stopEbxEyeTracker();
@@ -50,9 +60,14 @@ public slots:
     void onGotFrame(qint64 id);
     void togglePreview();
     void toggleProcessing();
+    void enableInterception();
+    void reportInitialTimestamp(QList<QString> data);
+    void reportMeasurementPoint(QList<QString> data);
 
 private slots:
     void on_pushButton_pressed();
+
+    void on_btn_intercept_pressed();
 
 private:
     Ui::EyeTrackerWindow *ui;

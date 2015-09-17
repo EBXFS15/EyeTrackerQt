@@ -12,58 +12,41 @@
 #include "time.h"
 #include <sys/time.h>
 #include <QMutex>
-#include <QCoreApplication>
+#include <QQueue>
+#include "timestamp.h"
 
-
-
-#define TIMER_DELAY 500
+#define EBX_DEVICE_PATH "/dev/ebx_monitor"
 
 class EbxMonitorWorker : public QObject
 {
     Q_OBJECT    
+    QMutex isQueueEmpty;
 
 private:
-    QStandardItemModel * model;
-    QTreeView * treeView;    
-    QAtomicInt stopMonitor;
-    QTimer timer;
-    QMutex treeViewMutex;
-    QList<QStandardItem *> createdItems;
-
-
-    int prepareRow(QList<QStandardItem *> *rowItems, const QString &line);
-    QStandardItem * createRowItem(const QString data);
-
-    long long getFromRowItem(QList<QStandardItem *> rowItems, int position);
-
-    int getPosition(QList<QStandardItem *> rowItems);
-    int getPosition(QString line);
-
-    long long getTimestamp(QList<QStandardItem *> rowItems);
-    long long getTimestamp(QString line);
-    long long getId(QList<QStandardItem *> rowItems);
-    long long getId(QString line);
-    long long getDelta(QList<QStandardItem *> rowItems);
-    long long getDelta(QList<QStandardItem *> rowItemsNewer,QList<QStandardItem *> rowItemsOlder);
-    double getDeltaInMs(QList<QStandardItem *> rowItems);
-    double getDeltaInMs(QList<QStandardItem *> rowItemsNewer,QList<QStandardItem *> rowItemsOlder);
-
-    void appendRowItems(QList<QStandardItem *>  * rowItems);
+    QAtomicInt          remainingLoops;
+    QAtomicInt          matchingIsPending;
+    QQueue<Timestamp *> receivedFrames;
+    QList<Timestamp *>  listOfTimestamps;
+    QList<Timestamp *>  matchingTable;
+    void storeMeasurementData(QList<QString> lines);
+    void findMatchingTimestamps();
 
 public:
-    explicit EbxMonitorWorker(QObject *parent = 0, QStandardItemModel *model = 0, QTreeView *treeView = 0);
+    explicit EbxMonitorWorker(QObject *parent = 0);
     ~EbxMonitorWorker();
 
 signals:
     void finished();
+    void reportInitialTimestamp(QList<QString> data);
+    void reportMeasurementPoint(QList<QString> data);
+    void message(QString msg);
 
-
-public slots:
-    void updateEbxMonitorData( qint64 id);
-    void gotNewFrame(qint64 timestamp);
-    void grabfromdriver();
+public slots:    
+    void gotNewFrame(qint64 timestamp, int measurementPosition);
+    void flushOldMeasurementData();
+    void fetchAndParseMeasurementData();
+    void sarchMatch();
     void stop();
-    void startGrabbing();
 };
 
 #endif // EBXMONITORWORKER_H

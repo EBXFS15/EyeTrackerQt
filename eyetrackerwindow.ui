@@ -58,7 +58,7 @@
    <widget class="QLabel" name="label_timestamp">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>200</x>
       <y>500</y>
       <width>291</width>
       <height>21</height>
@@ -71,9 +71,9 @@
    <widget class="QLabel" name="label_fps">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>520</y>
-      <width>291</width>
+      <x>10</x>
+      <y>500</y>
+      <width>191</width>
       <height>21</height>
      </rect>
     </property>
@@ -85,13 +85,13 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>10</y>
+      <y>20</y>
       <width>671</width>
       <height>471</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <property name="tabSpacing">
      <number>6</number>
@@ -101,8 +101,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>671</width>
-       <height>409</height>
+       <width>100</width>
+       <height>30</height>
       </rect>
      </property>
      <attribute name="label">
@@ -171,8 +171,8 @@
    <widget class="QLabel" name="label_rxtime">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>540</y>
+      <x>10</x>
+      <y>550</y>
       <width>161</width>
       <height>21</height>
      </rect>
@@ -184,9 +184,9 @@
    <widget class="QLabel" name="label_rxtime_txt">
     <property name="geometry">
      <rect>
-      <x>190</x>
-      <y>540</y>
-      <width>131</width>
+      <x>170</x>
+      <y>550</y>
+      <width>111</width>
       <height>21</height>
      </rect>
     </property>
@@ -197,9 +197,9 @@
    <widget class="QLabel" name="label_latency_txt">
     <property name="geometry">
      <rect>
-      <x>190</x>
-      <y>560</y>
-      <width>131</width>
+      <x>170</x>
+      <y>570</y>
+      <width>111</width>
       <height>21</height>
      </rect>
     </property>
@@ -210,8 +210,8 @@
    <widget class="QLabel" name="label_latency">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>560</y>
+      <x>10</x>
+      <y>570</y>
       <width>151</width>
       <height>21</height>
      </rect>
@@ -223,8 +223,8 @@
    <widget class="QLabel" name="label_latency_avg">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>560</y>
+      <x>280</x>
+      <y>570</y>
       <width>31</width>
       <height>21</height>
      </rect>
@@ -236,8 +236,8 @@
    <widget class="QLabel" name="label_latency_txt_avg">
     <property name="geometry">
      <rect>
-      <x>360</x>
-      <y>560</y>
+      <x>320</x>
+      <y>570</y>
       <width>131</width>
       <height>21</height>
      </rect>
@@ -272,6 +272,71 @@ Processing</string>
     <property name="text">
      <string>Toggle
 Preview</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_intercept">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>270</y>
+      <width>191</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>check next frame</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_fps_avg_txt">
+    <property name="geometry">
+     <rect>
+      <x>320</x>
+      <y>530</y>
+      <width>131</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_fps_avg">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>530</y>
+      <width>31</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>avg:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_fps_2">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>530</y>
+      <width>161</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Frame rx timestamp:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_fps_txt">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>530</y>
+      <width>111</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0</string>
     </property>
    </widget>
   </widget>
