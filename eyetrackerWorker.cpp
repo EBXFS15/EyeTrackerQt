@@ -32,10 +32,14 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
            CvRect eye_rect = *(CvRect*) cvGetSeqElem(faces,i);
            CvPoint center= cvPoint(eye_rect.x+eye_rect.width/2,eye_rect.y+eye_rect.height/2);
            emit eyeFound(center.x, center.y);
+           if(close)
+           {
+               break;
+           }
         }
     }
     QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
-    if(1==close)
+    if(close)
     {
         emit finished();
     }

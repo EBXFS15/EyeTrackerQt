@@ -93,22 +93,22 @@ void Timestamp::setAlternativeId(qint64 newId)
  * @param previousTimestamp
  * @return list that can be added directly to a treeview.
  */
-QList<QString> Timestamp::prepareRow(Timestamp * previousTimestamp)
+QString Timestamp::toString(Timestamp * previousTimestamp)
 {
-    QList<QString> tempString;
+    QString tempString;
 
-    tempString << QString("%1(%2)").arg(this->id).arg(this->alternativeId);
-    tempString << QString("%1").arg(this->position);
-    tempString << QString("%1us").arg(this->registrationTime);
-    tempString << QString("%1us").arg(this->getDelayInMs());
+    tempString.append(QString("%1(%2),").arg(this->id).arg(this->alternativeId));
+    tempString.append(QString("%1,").arg(this->position));
+    tempString.append(QString("%1us,").arg(this->registrationTime));
+    tempString.append(QString("%1us,").arg(this->getDelayInMs()));
 
     if(0 != previousTimestamp)
     {
-        tempString << QString("%1us").arg(this->getDelayInMs(previousTimestamp));
+        tempString.append(QString("%1us").arg(this->getDelayInMs(previousTimestamp)));
     }
     else
     {
-        tempString << QString("%1us").arg(this->getDelayInMs());
+        tempString.append(QString("%1us").arg(this->getDelayInMs()));
     }
 
     return tempString;
@@ -116,14 +116,7 @@ QList<QString> Timestamp::prepareRow(Timestamp * previousTimestamp)
 
 double Timestamp::getDelayInMs(Timestamp *timestampToCompare)
 {
-    if(this < timestampToCompare)
-    {
-        return (((double)(timestampToCompare->getTimestamp() - this->getTimestamp()))/1000);
-    }
-    else
-    {
-        return (((double)(this->getTimestamp() - timestampToCompare->getTimestamp()))/1000);
-    }
+    return (((double)(timestampToCompare->getTimestamp() - this->getTimestamp()))/1000);
 }
 
 double Timestamp::getDelayInMs()

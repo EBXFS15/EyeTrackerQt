@@ -45,7 +45,7 @@ public:
     qint64 getAlternativeId();
     void setAlternativeId(qint64 newId);
 
-    QList<QString> prepareRow(Timestamp * previousTimestamp = 0);
+    QString toString(Timestamp * previousTimestamp = 0);
 
     double getDelayInMs(Timestamp * timestampToCompare);
     double getDelayInMs();

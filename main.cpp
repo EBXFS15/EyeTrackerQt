@@ -1,4 +1,4 @@
-#include "eyetrackerwindow.h"
+                                                                                           #include "eyetrackerwindow.h"
 #include <QApplication>
 
 #include <signal.h>

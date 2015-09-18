@@ -14,16 +14,7 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     //register Iplimage to use slot/signal with Qt
     qRegisterMetaType<IplImage>("IplImage");
 
-    ui->label_message->setText(QString("Messages:\n"));
-    //timestamp = -1;
-
-
-
-    /** Signals to stop the workers. Some are less relevant but it seems to be better to do it this way. */
-
-    connect(this, SIGNAL(stopEbxEyeTracker()),&eyetrackerWorker, SLOT(abortThread()));
-    connect(this, SIGNAL(stopEbxCaptureWorker()),&captureWorker, SLOT(stopCapturing()));
-
+    ui->label_message->setText(QString("Messages:\n"));    
 
     /** ebxMonitor setup
      * The ebxMonitor waits for a trigger to start parsing and matching timestamps.
@@ -36,31 +27,28 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     ebxMonitorWorker = new EbxMonitorWorker();
     setupEbxMonitorTree();
     connect(&ebxMonitorThread, SIGNAL(started()),ebxMonitorWorker,SLOT(sarchMatch()));
-    connect(this, SIGNAL(startIntercept()), ebxMonitorWorker, SLOT(sarchMatch()));
 
-    connect(ebxMonitorWorker, SIGNAL(reportInitialTimestamp(QList<QString>)), this, SLOT(reportInitialTimestamp(QList<QString>)));
-    connect(ebxMonitorWorker, SIGNAL(reportMeasurementPoint(QList<QString>)), this, SLOT(reportMeasurementPoint(QList<QString>)));
+    connect(this, SIGNAL(sampleEbxMonitor()), ebxMonitorWorker, SLOT(sarchMatch()));
+    connect(this, SIGNAL(setNewEnqueueingDelay(uint)), ebxMonitorWorker, SLOT(setNewEnqueueingDelay(uint)));
 
+    connect(ebxMonitorWorker, SIGNAL(reportInitialTimestamp(QString)), this, SLOT(reportInitialTimestamp(QString)));
+    connect(ebxMonitorWorker, SIGNAL(reportMeasurementPoint(QString)), this, SLOT(reportMeasurementPoint(QString)));
+    connect(ebxMonitorWorker, SIGNAL(reportEnd(int)), this, SLOT(reportEnd(int)));
     connect(ebxMonitorWorker, SIGNAL(finished()),this, SLOT(enableInterception()));
-
-    connect(this, SIGNAL(gotNewFrame(qint64,int)), ebxMonitorWorker,SLOT(gotNewFrame(qint64,int)));
-
     connect(ebxMonitorWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
-    //connect(ebxMonitorWorker, SIGNAL(finished()), ebxMonitorWorker, SLOT(deleteLater()));
 
-    /** Signals to stop the workers. Some are less relevant but it seems to be better to do it this way. */
+    connect(this, SIGNAL(gotNewFrame(qint64,int)), ebxMonitorWorker,SLOT(gotNewFrame(qint64,int)));       
+
+    /** Signals to stop the workers. The stop slot may be only hit when thread.wait() is called.*/
     connect(this, SIGNAL(stopEbxMonitor()),ebxMonitorWorker, SLOT(stop()));
-
-
-
 
     /** This is absolutely needed. Informs the Thread that the work is done. **/
     connect(&captureWorker, SIGNAL(finished()), &captureThread, SLOT(quit()));
     connect(&eyetrackerWorker, SIGNAL(finished()), &eyetrackerThread, SLOT(quit()));
 
-
     connect(&captureThread, SIGNAL(started()), &captureWorker, SLOT(process()));
-    connect(&captureWorker, SIGNAL(qimageCaptured(QImage, double)), this, SLOT(onCaptured(QImage, double)));
+    connect(&eyetrackerWorker, SIGNAL(eyeFound(int,int)), &captureWorker, SLOT(setCenter(int,int)));
+    connect(&captureWorker, SIGNAL(qimageCaptured(QImage)), this, SLOT(onCaptured(QImage)));
 
     /**
      * I don't know why we should delete something that is handled by QT anyway
@@ -74,11 +62,20 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     //connect(&eyetrackerThread, SIGNAL(finished()), &eyetrackerThread, SLOT(deleteLater()));
 
     connect(&captureWorker, SIGNAL(imageCaptured(IplImage)), &eyetrackerWorker, SLOT(onImageCaptured(IplImage)));
-    connect(&eyetrackerWorker, SIGNAL(eyeFound(int,int)), this, SLOT(onEyeFound(int,int)));
 
+    /**
+      * I do not see any reason why the signal has to pass through the main GUI Thread.
+      * The emit message on capture.cpp is more than enough.
+      */
+    //connect(&eyetrackerWorker, SIGNAL(eyeFound(int,int)), this, SLOT(onEyeFound(int,int)));
 
+    /**
+     * Separation is not really needed but for the moment there is no reason to remove it.
+     * ater this could be merged into one slot.
+     */
     connect(&captureWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
     connect(&eyetrackerWorker, SIGNAL(message(QString)), this, SLOT(onTrackerMessage(QString)));
+
     connect(ui->quitBtn,SIGNAL(clicked()),this,SLOT(onClosed()));
     connect(ui->btn_disable_preview,SIGNAL(clicked()),this,SLOT(togglePreview()));
     connect(ui->btn_disable_processing,SIGNAL(clicked()),this,SLOT(toggleProcessing()));
@@ -86,10 +83,9 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(&captureWorker, SIGNAL(gotFrame(qint64)), this, SLOT(onGotFrame(qint64)));
 
 
-
-
-
-
+    /** Signals to stop the workers. Some are less relevant but it seems to be better to do it this way. */
+    connect(this, SIGNAL(stopEbxEyeTracker()),&eyetrackerWorker, SLOT(abortThread()));
+    connect(this, SIGNAL(stopEbxCaptureWorker()),&captureWorker, SLOT(stopCapturing()));
 
 
     captureWorker.moveToThread(&captureThread);
@@ -116,37 +112,29 @@ void EyeTrackerWindow::updateImage(QPixmap pixmap)
     ui->label->adjustSize();
 }
 
-void EyeTrackerWindow::addTimestamp(double timestamp)
-{
-    /*
-    ui->label_timestamp->setText("Timestamp:"+ QString::number(timestamp));
-    if(this->timestamp>-1)
-    {
-        ui->label_fps->setText("FPS:"+ QString::number(1/(timestamp-this->timestamp)));
-    }
-    this->timestamp = timestamp;
-*/
-}
 
-void EyeTrackerWindow::onCaptured(QImage captFrame, double timestamp)
-{
+
+void EyeTrackerWindow::onCaptured(QImage captFrame)
+{       
     updateImage(QPixmap::fromImage(captFrame));
-    addTimestamp(timestamp);
 }
 
 void EyeTrackerWindow::onCaptureMessage(QString msg)
-{
-
-    int cropPosition = 0;
-    while (ui->label_message->text().split("\n").count() > 15)
+{   
+    if (!msg.endsWith("\n"))
     {
-        cropPosition = ui->label_message->text().indexOf("\n",cropPosition) + 1;
-        if (cropPosition > 0)
-        {
-            ui->label_message->setText(ui->label_message->text().mid(cropPosition));
-        }
+        msg.append("\n");
     }
-    ui->label_message->setText(ui->label_message->text().mid(cropPosition) + msg + "\n");
+    if (ui->label_message->text().count("\n")> 15)
+    {
+        int cropPosition = ui->label_message->text().indexOf("\n") + 1;
+        msg.prepend(ui->label_message->text().mid(cropPosition));
+    }
+    else
+    {
+        msg.prepend(ui->label_message->text());
+    }
+    ui->label_message->setText(msg);
 }
 
 void EyeTrackerWindow::onTrackerMessage(QString msg)
@@ -171,11 +159,6 @@ void EyeTrackerWindow::onClosed()
     eyetrackerThread.wait();
 
     this->close();
-}
-
-void EyeTrackerWindow::onEyeFound(int x, int y)
-{
-    captureWorker.setCenter(x,y);
 }
 
 void EyeTrackerWindow::togglePreview()
@@ -203,7 +186,7 @@ void EyeTrackerWindow::onGotFrame(qint64 id)
     rxTimeStamp = (((qint64)gotTime.tv_sec) * 1000000 + ((qint64)gotTime.tv_nsec)/1000);
     latency = (rxTimeStamp-id)/1000;
     fps = 1000000/((double)(rxTimeStamp - previousTimestamp));
-
+    QCoreApplication::processEvents();
     if (avgLatency < 0)
     {
         avgLatency = latency;
@@ -225,22 +208,27 @@ void EyeTrackerWindow::onGotFrame(qint64 id)
         emit gotNewFrame(id, 255);
         count = 0;
     }
+    QCoreApplication::processEvents();
 }
 
-void EyeTrackerWindow::on_pushButton_pressed()
-{
-    //ebxMonitorWorker.updateEbxMonitorData(ebxMonitorModel, ui->ebxMonitorTree);
-}
+
 
 void EyeTrackerWindow::enableInterception()
 {
-    ui->btn_intercept->setEnabled(true);
+    if(ui->chk_interception->isChecked())
+    {
+        emit sampleEbxMonitor();
+    }
+    else
+    {
+        ui->btn_intercept->setEnabled(true);
+    }
 }
 
 void EyeTrackerWindow::on_btn_intercept_pressed()
 {
     ui->btn_intercept->setEnabled(false);
-    emit startIntercept();
+    emit sampleEbxMonitor();
 }
 
 void EyeTrackerWindow::cleanEbxMonitorTree()
@@ -252,7 +240,7 @@ void EyeTrackerWindow::cleanEbxMonitorTree()
     }
     while(!createdStandardItems.isEmpty())
     {
-        delete createdStandardItems.at(0);
+        createdStandardItems.at(0)->removeRows(0,createdStandardItems.at(0)->rowCount());
         createdStandardItems.removeAt(0);
     }
 }
@@ -262,29 +250,45 @@ void EyeTrackerWindow::setupEbxMonitorTree()
     ebxMonitorModel = new QStandardItemModel(this);
     ui->ebxMonitorTree->setModel(ebxMonitorModel);
     ui->ebxMonitorTree->show();
-    ui->ebxMonitorTree->setColumnWidth(0,180);
-    ui->ebxMonitorTree->setColumnWidth(1,45);
-    ui->ebxMonitorTree->setColumnWidth(2,180);
-    ui->ebxMonitorTree->setColumnWidth(3,100);
-    ui->ebxMonitorTree->setColumnWidth(4,100);
 }
 
-void EyeTrackerWindow::reportInitialTimestamp(QList<QString> data)
+void EyeTrackerWindow::reportInitialTimestamp(QString csvData)
 {
     cleanEbxMonitorTree();
     setupEbxMonitorTree();
-    reportMeasurementPoint(data);
+    reportMeasurementPoint(csvData);
+    for(int i = 0 ; i < 5 ;i++)
+    {
+        ui->ebxMonitorTree->resizeColumnToContents(i);
+    }
 }
 
-void EyeTrackerWindow::reportMeasurementPoint(QList<QString> data)
+void EyeTrackerWindow::reportMeasurementPoint(QString csvData)
 {
     QList<QStandardItem *> rowItems;
-    foreach (QString str, data)
+    foreach (QString str, csvData.split(","))
     {
         QStandardItem * tmpItem = new QStandardItem(str);
         createdStandardItems << tmpItem;
         rowItems << tmpItem;
     }
     ebxMonitorModel->invisibleRootItem()->appendRow(rowItems);
+
 }
 
+void EyeTrackerWindow::reportEnd(int count)
+{
+    if((ui->chk_stop_interception->isChecked()) && (count >= ui->nbr_stop_interception->value()))
+    {
+        emit ui->chk_interception->setChecked(false);
+    }
+    for(int i = 0 ; i < 5 ;i++)
+    {
+        ui->ebxMonitorTree->resizeColumnToContents(i);
+    }
+}
+
+void EyeTrackerWindow::on_scr_delay_enqueuing_valueChanged(int value)
+{
+    emit setNewEnqueueingDelay(value);
+}

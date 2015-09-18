@@ -34,6 +34,7 @@ class EyeTrackerWorker: public QObject
 
 
     private:
+    /* Changed to atomic */
     QAtomicInt close;
     QAtomicInt processing;
     CvHaarClassifierCascade* cascade;

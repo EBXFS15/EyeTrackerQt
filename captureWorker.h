@@ -53,17 +53,18 @@ class CaptureWorker: public QObject
     void stop_capturing(void);
     void print_video_formats(void);
     void disable_camera_optimisation(void);
-    void setCenter(int x, int y);
+
     void togglePreview();
 
     public slots:
     void process();
-    void stopCapturing();
+    void setCenter(int x, int y);
+    void stopCapturing();    
 
     signals :
     void finished();
     void imageCaptured(IplImage image);
-    void qimageCaptured(QImage image, double timestamp);
+    void qimageCaptured(QImage image);
     void message(QString msg);
     void gotFrame(qint64 id);
 

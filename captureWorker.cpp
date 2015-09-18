@@ -158,9 +158,9 @@ void CaptureWorker::init_device(void)
         emit message(QString("Could not obtain camera format"));
         exit(EXIT_FAILURE);
     }
-    emit message("Current Format: ");
-    emit message(QString(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
-    emit message(QString::number((fmt.fmt.pix_mp.width))+"x"+QString::number((fmt.fmt.pix_mp.height)));
+    emit message(QString("Current Format: %1").arg(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
+    emit message(QString("%1x%2").arg(fmt.fmt.pix_mp.width)
+                                 .arg(fmt.fmt.pix_mp.height));
     fmt.fmt.pix.width       = DEF_IMG_WIDTH;
     fmt.fmt.pix.height      = DEF_IMG_HEIGHT;
     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;//
@@ -176,9 +176,9 @@ void CaptureWorker::init_device(void)
             emit message(QString("Could not obtain camera format"));
             exit(EXIT_FAILURE);
         }
-        emit message("New Format: ");
-        emit message(QString(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
-        emit message(QString::number((fmt.fmt.pix_mp.width))+"x"+QString::number((fmt.fmt.pix_mp.height)));
+        emit message(QString("New Format: %1").arg(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
+        emit message(QString("%1x%2").arg(fmt.fmt.pix_mp.width)
+                                     .arg(fmt.fmt.pix_mp.height));
 
     CLEAR(req);
     req.count = 2;
@@ -207,6 +207,10 @@ void CaptureWorker::init_device(void)
                     //perror("mmap");
                     exit(EXIT_FAILURE);
             }
+            if(close)
+            {
+                break;
+            }
     }
 
     for (i = 0; i < n_buffers; ++i)
@@ -216,6 +220,10 @@ void CaptureWorker::init_device(void)
             buf.memory = V4L2_MEMORY_MMAP;
             buf.index = i;
             xioctl(fd, VIDIOC_QBUF, &buf);
+            if(close)
+            {
+                break;
+            }
     }
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 }
@@ -261,12 +269,14 @@ void CaptureWorker::print_video_formats()
 
     memset(&fmtdesc, 0, sizeof(fmtdesc));
     fmtdesc.type = type;
-    emit message("Pixel formats supported:");
-    while (v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) >= 0)
+    QString msg;
+    msg.append("Pixel formats supported:");
+    while ((v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) >= 0) && (!close))
     {
-        emit message(QString(fcc2s(fmtdesc.pixelformat).c_str()));
+        msg.append(QString(fcc2s(fmtdesc.pixelformat).c_str()));
         fmtdesc.index++;
     }
+    emit message(msg);
 }
 
 void CaptureWorker::disable_camera_optimisation()
@@ -304,7 +314,7 @@ void CaptureWorker::process()
     print_video_formats();
     disable_camera_optimisation();
 
-    while( close==0)
+    while(!close)
     {
         getFrameV4l2();
         emit imageCaptured(frame);
@@ -313,9 +323,8 @@ void CaptureWorker::process()
         {
             cvDrawCircle(&frame,eyeCenter,20,CV_RGB(0,0,255 ),2);
             captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888);
-            emit qimageCaptured(captFrame,timestamp);
+            emit qimageCaptured(captFrame);
         }
-        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
     }
     stop_capturing();
     uninit_device();
@@ -343,10 +352,8 @@ void CaptureWorker::process()
 }
 
 void CaptureWorker::stopCapturing()
-{
-    emit message(QString("Application requested QUIT"));
-    close = 1;
-
+{    
+    close = 1;    
     /* This is called twice (after the close becomes 1) therefore I commented it out here */
     //stop_capturing();
 }
@@ -355,8 +362,7 @@ void CaptureWorker::setCenter(int x, int y)
 {
     eyeCenter.x=x;
     eyeCenter.y=y;
-    emit message (QString("Eye found at x=") + QString::number(x)
-    + QString(" y=") + QString::number(y) + "\n");
+    emit message (QString("Eye found at x=%1 y=%2").arg(x).arg(y));
 }
 
 void CaptureWorker::togglePreview()

@@ -25,8 +25,7 @@ public:
     explicit EyeTrackerWindow(QWidget *parent = 0);
     ~EyeTrackerWindow();
     void updateImage(QPixmap pixmap);
-    void getImage();
-    void addTimestamp(double timestamp);
+    void getImage();    
     void cleanEbxMonitorTree();
     void setupEbxMonitorTree();
 
@@ -44,34 +43,40 @@ public:
     QList<QStandardItem * > createdStandardItems;
 
 
+
 signals:
     void gotNewFrame(qint64 frameId, int position);
-    void startIntercept();
+    void sampleEbxMonitor();
     void stopEbxMonitor();
     void stopEbxCaptureWorker();
     void stopEbxEyeTracker();
+    void setCenter(int x, int y);
+    void setNewEnqueueingDelay(unsigned int delay);
 
 public slots:
-    void onCaptured(QImage frame, double timestamp);
+    void onCaptured(QImage frame);
     void onClosed();
     void onCaptureMessage(QString msg);
-    void onTrackerMessage(QString msg);
-    void onEyeFound(int x, int y);
+    void onTrackerMessage(QString msg);    
     void onGotFrame(qint64 id);
     void togglePreview();
     void toggleProcessing();
     void enableInterception();
-    void reportInitialTimestamp(QList<QString> data);
-    void reportMeasurementPoint(QList<QString> data);
+    void reportInitialTimestamp(QString csvData);
+    void reportMeasurementPoint(QString csvData);
+    void reportEnd(int count);
+
 
 private slots:
-    void on_pushButton_pressed();
+
 
     void on_btn_intercept_pressed();
 
+    void on_scr_delay_enqueuing_valueChanged(int value);
+
 private:
     Ui::EyeTrackerWindow *ui;
-    double timestamp;
+
 };
 
 #endif // EYETRACKERWINDOW_H
