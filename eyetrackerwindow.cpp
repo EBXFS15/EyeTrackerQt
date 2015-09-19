@@ -34,13 +34,14 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(ebxMonitorWorker, SIGNAL(reportInitialTimestamp(QString)), this, SLOT(reportInitialTimestamp(QString)));
     connect(ebxMonitorWorker, SIGNAL(reportMeasurementPoint(QString)), this, SLOT(reportMeasurementPoint(QString)));
     connect(ebxMonitorWorker, SIGNAL(reportEnd(int)), this, SLOT(reportEnd(int)));
-    connect(ebxMonitorWorker, SIGNAL(finished()),this, SLOT(enableInterception()));
+    connect(ebxMonitorWorker, SIGNAL(done()),this, SLOT(enableInterception()));
+    connect(ebxMonitorWorker, SIGNAL(finished()),this, SLOT(deleteLater()));
     connect(ebxMonitorWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
 
     connect(this, SIGNAL(gotNewFrame(qint64,int)), ebxMonitorWorker,SLOT(gotNewFrame(qint64,int)));       
 
     /** Signals to stop the workers. The stop slot may be only hit when thread.wait() is called.*/
-    connect(this, SIGNAL(stopEbxMonitor()),ebxMonitorWorker, SLOT(stop()));
+    connect(this, SIGNAL(stopEbxMonitor()),ebxMonitorWorker, SLOT(stopMonitoring()));
 
     /** This is absolutely needed. Informs the Thread that the work is done. **/
     connect(&captureWorker, SIGNAL(finished()), &captureThread, SLOT(quit()));
@@ -121,20 +122,12 @@ void EyeTrackerWindow::onCaptured(QImage captFrame)
 
 void EyeTrackerWindow::onCaptureMessage(QString msg)
 {   
-    if (!msg.endsWith("\n"))
-    {
-        msg.append("\n");
-    }
-    if (ui->label_message->text().count("\n")> 15)
-    {
-        int cropPosition = ui->label_message->text().indexOf("\n") + 1;
-        msg.prepend(ui->label_message->text().mid(cropPosition));
-    }
-    else
-    {
-        msg.prepend(ui->label_message->text());
-    }
-    ui->label_message->setText(msg);
+//    if (!msg.endsWith("\n"))
+//    {
+//        msg.append("\n");
+//    }
+    ui->label_message->append(msg);
+
 }
 
 void EyeTrackerWindow::onTrackerMessage(QString msg)
@@ -145,17 +138,35 @@ void EyeTrackerWindow::onTrackerMessage(QString msg)
 
 void EyeTrackerWindow::onClosed()
 {
+    /**
+     * Avoid delay be stopping preview
+     * Would be nicer with signals but ok...
+     * */
+    togglePreview();
+    /**
+     * Avoid delay be stopping eyetracker
+     * Would be nicer with signals but ok...
+     * */
+    toggleProcessing();
+
+    /**
+     * Cleanup EbxMonitorWorker
+     */
     emit stopEbxMonitor();
     ebxMonitorThread.exit();
-    ebxMonitorThread.wait();
-    ebxMonitorModel->deleteLater();
-
+    ebxMonitorThread.wait();   
     cleanEbxMonitorTree();
 
+    /**
+     * Stop eyetracker and capture
+     */
     emit stopEbxEyeTracker();
     emit stopEbxCaptureWorker();
+    captureThread.exit();
+    eyetrackerThread.exit();
 
     captureThread.wait();
+
     eyetrackerThread.wait();
 
     this->close();
@@ -240,7 +251,15 @@ void EyeTrackerWindow::cleanEbxMonitorTree()
     }
     while(!createdStandardItems.isEmpty())
     {
-        createdStandardItems.at(0)->removeRows(0,createdStandardItems.at(0)->rowCount());
+        QStandardItem * first  = createdStandardItems.at(0);
+        if((first != 0) && (first->rowCount() > 0))
+        {
+            first->removeRows(0,first->rowCount());
+        }
+        if((first != 0) && (first->columnCount() > 0))
+        {
+            first->removeRows(0,first->columnCount());
+        }
         createdStandardItems.removeAt(0);
     }
 }

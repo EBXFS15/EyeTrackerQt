@@ -20,6 +20,7 @@ EyeTrackerWorker::~EyeTrackerWorker()
 
 void EyeTrackerWorker::onImageCaptured(IplImage image)
 {
+    QCoreApplication::processEvents();
     if((0 == close) && (cascade!=NULL) && (true == processing))
     {
         cvCvtColor(&image,&grayImg,CV_RGB2GRAY);
@@ -30,7 +31,7 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
         for(int i=0;i< faces->total; i++)
         {
            CvRect eye_rect = *(CvRect*) cvGetSeqElem(faces,i);
-           CvPoint center= cvPoint(eye_rect.x+eye_rect.width/2,eye_rect.y+eye_rect.height/2);
+           CvPoint center= cvPoint(eye_rect.x+eye_rect.width/2,eye_rect.y+eye_rect.height/2);           
            emit eyeFound(center.x, center.y);
            if(close)
            {
@@ -38,7 +39,7 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
            }
         }
     }
-    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+
     if(close)
     {
         emit finished();

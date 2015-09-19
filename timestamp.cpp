@@ -116,7 +116,15 @@ QString Timestamp::toString(Timestamp * previousTimestamp)
 
 double Timestamp::getDelayInMs(Timestamp *timestampToCompare)
 {
-    return (((double)(timestampToCompare->getTimestamp() - this->getTimestamp()))/1000);
+    double tmp =  (((double)(timestampToCompare->getTimestamp() - this->getTimestamp()))/1000);
+    if (tmp < 0)
+    {
+        return -tmp;
+    }
+    else
+    {
+        return tmp;
+    }
 }
 
 double Timestamp::getDelayInMs()

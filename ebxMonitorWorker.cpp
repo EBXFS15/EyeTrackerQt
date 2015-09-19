@@ -1,43 +1,49 @@
 #include "ebxMonitorWorker.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <QDebug>
 
 
 EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
 {
-    delayUntilEngueueing = 10;
-
-
-    connect(&mytimer,SIGNAL(timeout()),this,SLOT(fetchAndParseMeasurementData()));
-
+    triggerActive = 0;
+    delayAfterEbxMonitorReset = 0;
+    //connect(this,SIGNAL(searchMatchingTimestamps(Timestamp)), this, SLOT(findMatchingTimestamps(Timestamp)));
+    connect(&mytimer,SIGNAL(timeout()),this,SLOT(activateTrigger()));
 }
 
 void EbxMonitorWorker::sarchMatch(){    
-    flushOldMeasurementData();    
+    int tmpDelay = delayAfterEbxMonitorReset;
+    triggerActive = 0;
+    flushOldMeasurementData();
+    mytimer.start(500);
+    fetchAndParseMeasurementData();
+
 }
 
-void EbxMonitorWorker::stop()
+void EbxMonitorWorker::stopMonitoring()
 {
-    enqueNewFrames = 0;
+    stop = 1;
 }
 
 void EbxMonitorWorker::setNewEnqueueingDelay(unsigned int delay)
 {
-    delayUntilEngueueing = delay;
+    delayAfterEbxMonitorReset = delay;
 }
 
 void EbxMonitorWorker::flushOldMeasurementData()
-{
-    enqueNewFrames = 0;
-
-    foreach (Timestamp * item , listOfTimestamps)
+{  
+    if(!listOfTimestamps.isEmpty())
     {
-        delete item;
+        foreach (Timestamp * item , listOfTimestamps)
+        {
+            delete item;
+        }
+        listOfTimestamps.clear();
     }
-    listOfTimestamps.clear();
-    enqueuedFrameTimestamps.clear();
-    matchingTableFromFInalId.clear();
-    while(!enqueuedFrameTimestamps.isEmpty())
+    if(!matchingTableFromFInalId.isEmpty())
     {
-        delete enqueuedFrameTimestamps.dequeue();
+        matchingTableFromFInalId.clear();
     }
 
     FILE* fd = fopen(EBX_DEVICE_PATH, "r"); // get a file descriptor somehow
@@ -52,22 +58,22 @@ void EbxMonitorWorker::flushOldMeasurementData()
         else
         {
             QTextStream in(&file);
-            while(!in.atEnd())
+            QList<QString> lines;
+            while(!in.atEnd() && (!stop))
             {
-                in.readAll().split(QString("\n"));
+                QString temp = in.readAll();
+                lines.append(temp.split(QString("\n")));
             }
             file.close();
+
         }
         fclose(fd);
+        emit done();
     }
-    //QThread::usleep(delayUntilEngueuing);
-    enqueNewFrames = 1;
-    mytimer.start(delayUntilEngueueing);
 }
 
-void EbxMonitorWorker::fetchAndParseMeasurementData(){
-    mytimer.stop();
-    enqueNewFrames = 0;
+void EbxMonitorWorker::fetchAndParseMeasurementData()
+{
     FILE* fd = fopen(EBX_DEVICE_PATH, "r"); // get a file descriptor somehow
     if (fd!=0)
     {
@@ -80,24 +86,23 @@ void EbxMonitorWorker::fetchAndParseMeasurementData(){
         else
         {
             QTextStream in(&file);
-            QList<QString> lines;
-            while(!in.atEnd())
+            QString temp;
+            while(!in.atEnd() && (!stop))
             {
-                lines = in.readAll().split(QString("\n"));
-                storeMeasurementData(lines);
+                temp.append(in.readAll());
             }
             file.close();
-            findMatchingTimestamps();
+            QList<QString> lines = temp.split(QString("\n"));
+            storeMeasurementData(lines);
         }
         fclose(fd);
-        emit finished();
+        emit done();
     }
     else
     {
         emit message("The filehandel for the ebx_monitor file could not be gathered.");
-        emit finished();
-    }
-
+        emit done();
+    }    
 }
 
 
@@ -106,130 +111,148 @@ void EbxMonitorWorker::storeMeasurementData(QList<QString> lines)
     foreach (QString line , lines)
     {
         QString data = line;
-        Timestamp * newTimestamp = new Timestamp(this, data);
         /**
-          * Detect if the timestamp has been updated in uvc_video.c	@ uvc_video_clock_update.
-          * Decision is based on Measurepoint 10 and 11 (see Timestamp class)
-          * if yes then add the new timestamp to the matching table.
-          **/
-        if (listOfTimestamps.count() > 0)
+          * Bugfix to avoid empty timestamp if data is empty
+          */
+        if (line.count()> 6)
         {
-            if (newTimestamp->isRelated(listOfTimestamps.last()))
+
+
+            Timestamp * newTimestamp = new Timestamp(this, data);
+            /**
+              * Detect if the timestamp has been updated in uvc_video.c	@ uvc_video_clock_update.
+              * Decision is based on Measurepoint 10 and 11 (see Timestamp class)
+              * if yes then add the new timestamp to the matching table.
+              **/
+            if (!listOfTimestamps.isEmpty())
             {
-                /**
-                  * Timestamp 10 is before modification
-                  * Timestamp 11 is after modification
-                  *
-                  * By setting in the Timestamp 11 the alternative ID it will be possible to use Timestamp 11 to match.
-                  */
-                newTimestamp->setAlternativeId(listOfTimestamps.last()->getId());
-                listOfTimestamps.last()->setAlternativeId(listOfTimestamps.last()->getId());
-                matchingTableFromFInalId << newTimestamp;
+                if (newTimestamp->isRelated(listOfTimestamps.last()))
+                {
+                    /**
+                      * Timestamp 10 is before modification
+                      * Timestamp 11 is after modification
+                      *
+                      * By setting in the Timestamp 11 the alternative ID it will be possible to use Timestamp 11 to match.
+                      */
+                    newTimestamp->setAlternativeId(listOfTimestamps.last()->getId());
+                    listOfTimestamps.last()->setAlternativeId(listOfTimestamps.last()->getId());
+                    matchingTableFromFInalId << newTimestamp;
+                }
+                /** Avoid long waiting if appication shall stop **/
+                if(stop)
+                {
+                    break;
+                }
             }
+            listOfTimestamps << newTimestamp;
+
         }
-        listOfTimestamps << newTimestamp;
     }
     qSort(listOfTimestamps);
+
 }
 
-/**
- * @brief EbxMonitorWorker::findMatchingTimestamps
- * Takes one of the recently enqued frames and checkes if a measurment point can be found in the matching elements.
- * attention: dequed elements have to be deleted therefore they are temporarely stored in the dequeuedElements list.
- */
-void EbxMonitorWorker::findMatchingTimestamps()
+void EbxMonitorWorker::activateTrigger()
 {
-    QList<Timestamp *> dequeuedElements;
-    bool foundAtLeastOneMatchingElement = false;    
-    results.clear();
-    /**
-      * If many a huge ammount of samples have to be processed then it may be better to add a stop variable.
-      */
-    while((!enqueuedFrameTimestamps.isEmpty()) && (!foundAtLeastOneMatchingElement))
+    mytimer.stop();
+    triggerActive = 1;
+    nmbrOfIgnoredFrames  = delayAfterEbxMonitorReset;
+}
+
+void EbxMonitorWorker::findMatchingTimestamps(Timestamp * criteria)
+{
+    if ((0 != criteria) && (!listOfTimestamps.isEmpty()) && ((*listOfTimestamps.first()) < (*criteria)))
     {
-        Timestamp * oldestEnqueuedFrame = enqueuedFrameTimestamps.dequeue();
-        if(oldestEnqueuedFrame != 0)
+        bool foundAtLeastOneMatchingElement = false;
+        results.clear();
+        results <<  criteria;
+
+        foreach (Timestamp * match, matchingTableFromFInalId) {
+            if ((*match)  == (*criteria))
+            {
+                criteria->setAlternativeId(match->getAlternativeId());
+                foundAtLeastOneMatchingElement = true;
+            }
+        }
+
+        if (foundAtLeastOneMatchingElement)
         {
-            dequeuedElements << oldestEnqueuedFrame;
-            emit message(QString("EBX-FIRST\t[%1]\t#[%2]\nQUE\t\t[%3]\t#[%4]\tdT[%5ms]\nEBX-LAST\t[%6]")
+            emit message(QString("\nMatch found for %1!").arg(criteria->getId()));
+            qDebug() << "Comparision for timestamp: " << criteria->getId() << " Alternative id: " << criteria->getAlternativeId();
+            qDebug() << "Not matching elements:";
+            qDebug() << "ID, Timestamp, Position, Alternative ID";
+
+            foreach (Timestamp * matchingCandidate, listOfTimestamps) {
+                if (((*matchingCandidate) == (*criteria)) || ((*criteria) == (*matchingCandidate)))
+                {
+                    results <<  matchingCandidate;
+                }
+                else
+                {
+                    qDebug() << matchingCandidate->getId() << ", "
+                             << matchingCandidate->getTimestamp() << ", "
+                             << matchingCandidate->getPosition() << ", "
+                             << matchingCandidate->getAlternativeId();
+                }
+            }
+            /**
+             * This should work and reorder the elements.
+             */
+            qSort(results);
+            Timestamp * previousTimestamp = 0;
+            int count = 0;
+            foreach(Timestamp * tmpTimestamp, results)
+            {
+                if(0 == count++)
+                {
+                    emit reportInitialTimestamp(tmpTimestamp->toString(previousTimestamp));
+                }
+                else
+                {
+                    emit reportMeasurementPoint(tmpTimestamp->toString(previousTimestamp));
+                }
+                previousTimestamp = tmpTimestamp;
+            }
+
+            emit reportEnd(count);
+
+        }
+        else
+        {
+            emit message(QString("\nNo match found\nEBX-FIRST\t[%1]\t#[%2]\nQUE\t\t[%3]\tdT[%4ms]\nEBX-LAST\t\t[%5]")
                          .arg(listOfTimestamps.first()->getTimestamp())
                          .arg(listOfTimestamps.count())
-                         .arg(oldestEnqueuedFrame->getTimestamp())
-                         .arg(enqueuedFrameTimestamps.count())
-                         .arg(oldestEnqueuedFrame->getDelayInMs(listOfTimestamps.first()))
+                         .arg(criteria->getTimestamp())
+                         .arg(criteria->getDelayInMs(listOfTimestamps.first()))
                          .arg(listOfTimestamps.last()->getTimestamp())
                          );
-
-            results <<  oldestEnqueuedFrame;
-
-            foreach (Timestamp * match, matchingTableFromFInalId) {
-                if ((*match)  == (*oldestEnqueuedFrame))
-                {
-                    oldestEnqueuedFrame->setAlternativeId(match->getAlternativeId());
-                    results <<  match;
-                    foundAtLeastOneMatchingElement = true;
-                }
-            }
-
-            if (foundAtLeastOneMatchingElement)
+            if((*criteria) < (*listOfTimestamps.last()))
             {
-                foreach (Timestamp * matchingCandidate, listOfTimestamps) {
-                    if ((*matchingCandidate) == (*oldestEnqueuedFrame))
-                    {
-                        results <<  matchingCandidate;
-                    }
-                }
-
+                //triggerActive.store(1);
             }
         }
-    }
-
-    if (!foundAtLeastOneMatchingElement)
-    {
-        emit message(QString("No match found."));
-    }    
-    else
-    {
-        qSort(results);
-        Timestamp * previousTimestamp = 0;
-        int count = 0;
-        foreach(Timestamp * tmpTimestamp, results)
-        {
-            if(0 == count++)
-            {
-                emit reportInitialTimestamp(tmpTimestamp->toString(previousTimestamp));
-            }
-            else
-            {
-                emit reportMeasurementPoint(tmpTimestamp->toString(previousTimestamp));
-            }
-
-            previousTimestamp = tmpTimestamp;
-        }
-
-        emit reportEnd(count);
-        foreach(Timestamp * tmp, dequeuedElements)
-        {
-            delete tmp;
-        }
+        delete criteria;
     }
 }
 
-/**
- * @brief EbxMonitorWorker::gotNewFrame enques a timestamp in order to allow post processing.
- * @param frameId is the identifier of the frame. This identifier will be used to find matches within the ebx_monitor data.
- * @param measurementPosition is the measurement position within the application.
- */
-void EbxMonitorWorker::gotNewFrame(qint64 frameId,int measurementPosition){
-    struct timespec gotTime;    
-    clock_gettime(CLOCK_MONOTONIC, &gotTime);
-    qint64 rxTimeStamp = (((qint64)gotTime.tv_sec) * 1000000 + ((qint64)gotTime.tv_nsec)/1000);
 
-    if(enqueNewFrames > 0)
+void EbxMonitorWorker::gotNewFrame(qint64 frameId,int measurementPosition){
+    if(nmbrOfIgnoredFrames <= 0)
     {
-        enqueuedFrameTimestamps.enqueue(new Timestamp(this, QString("%1us, %2us, %3").arg(frameId)
-                                                                            .arg(rxTimeStamp)
-                                                                            .arg(measurementPosition)));
+        if (triggerActive.testAndSetAcquire(1,0))
+        {
+            struct timespec gotTime;
+            clock_gettime(CLOCK_MONOTONIC, &gotTime);
+            qint64 rxTimeStamp = (((qint64)gotTime.tv_sec) * 1000000 + ((qint64)gotTime.tv_nsec)/1000);
+            findMatchingTimestamps(new Timestamp(this,QString("%1us, %2us, %3").arg(frameId)
+                                                    .arg(rxTimeStamp)
+                                                    .arg(measurementPosition)));
+        }
+
+    }
+    else
+    {
+        nmbrOfIgnoredFrames--;
     }
 }
 

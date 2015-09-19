@@ -14,6 +14,7 @@
 #include <sys/time.h>
 #include <QMutex>
 #include <QQueue>
+#include <QProcess>
 #include "timestamp.h"
 
 #define EBX_DEVICE_PATH "/dev/ebx_monitor"
@@ -21,17 +22,20 @@
 class EbxMonitorWorker : public QObject
 {
     Q_OBJECT    
-    QMutex isQueueEmpty;
+    QMutex accessData;
 
 private:
-    QAtomicInt          processMatchting;
+    QAtomicInt          stop;
+    QAtomicInt          triggerActive;
     QAtomicInt          matchingIsPending;
     QAtomicInt          enqueNewFrames;
     //QAtomicInt          matchingIsPending;
-    QAtomicInt          delayUntilEngueueing;
+    QAtomicInt          delayAfterEbxMonitorReset;
+    QAtomicInt          nmbrOfIgnoredFrames;
     QTimer              mytimer;
 
-    QQueue<Timestamp *> enqueuedFrameTimestamps;
+
+
     /**
      * @brief listOfTimestamps is the main reference to the objects. This list is used to delete the objects.
      */
@@ -39,7 +43,6 @@ private:
     QList<Timestamp *>  matchingTableFromFInalId;
     QList<Timestamp *>  results;
     void storeMeasurementData(QList<QString> lines);
-    void findMatchingTimestamps();
 
 public:
     explicit EbxMonitorWorker(QObject *parent = 0);
@@ -52,14 +55,18 @@ signals:
     void reportEnd(int count);
     void message(QString msg);
     void continueToFetchAndParse();
+    void searchMatchingTimestamps(Timestamp * criteria);
+    void done();
 
 public slots:    
     void gotNewFrame(qint64 timestamp, int measurementPosition);
     void flushOldMeasurementData();
     void fetchAndParseMeasurementData();
     void sarchMatch();
-    void stop();
+    void stopMonitoring();
     void setNewEnqueueingDelay(unsigned int delay);
+    void findMatchingTimestamps(Timestamp * criteria);
+    void activateTrigger();
 };
 
 #endif // EBXMONITORWORKER_H

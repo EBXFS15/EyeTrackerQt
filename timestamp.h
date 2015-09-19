@@ -33,7 +33,7 @@ public:
         return (registrationTime < other.registrationTime);
     }
     bool operator==(const Timestamp& other) const {
-        return ((id == other.id) || (alternativeId == other.alternativeId));
+        return ((id == other.id) || (id == other.alternativeId));
     }    
 
     bool isRelated(Timestamp * reference);

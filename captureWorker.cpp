@@ -28,7 +28,7 @@ static std::string fcc2s(unsigned int val)
 
 CaptureWorker::CaptureWorker()
 {
-    close = 0;
+    stop = 0;
     preview=true;
     r       = -1;
     fd      = -1;
@@ -51,9 +51,10 @@ int CaptureWorker::getFrameV4l2(void)
             /* Timeout. */
             tv.tv_sec = 2;
             tv.tv_usec = 0;
-            r = select(fd + 1, &fds, NULL, NULL, &tv);         
+            r = select(fd + 1, &fds, NULL, NULL, &tv);
+            QCoreApplication::processEvents();
         }
-        while ((r == -1 && (errno = EINTR)));
+        while (((r == -1) && (errno = EINTR)) && (!stop));
 
         if (0 > r)
         {
@@ -158,9 +159,12 @@ void CaptureWorker::init_device(void)
         emit message(QString("Could not obtain camera format"));
         exit(EXIT_FAILURE);
     }
-    emit message(QString("Current Format: %1").arg(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
-    emit message(QString("%1x%2").arg(fmt.fmt.pix_mp.width)
-                                 .arg(fmt.fmt.pix_mp.height));
+
+    emit message(QString("Current Format:\t %1; %2x%3")
+                 .arg(fcc2s(fmt.fmt.pix.pixelformat).c_str())
+                 .arg(fmt.fmt.pix_mp.width)
+                 .arg(fmt.fmt.pix_mp.height));
+
     fmt.fmt.pix.width       = DEF_IMG_WIDTH;
     fmt.fmt.pix.height      = DEF_IMG_HEIGHT;
     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;//
@@ -176,9 +180,11 @@ void CaptureWorker::init_device(void)
             emit message(QString("Could not obtain camera format"));
             exit(EXIT_FAILURE);
         }
-        emit message(QString("New Format: %1").arg(fcc2s(fmt.fmt.pix.pixelformat).c_str()));
-        emit message(QString("%1x%2").arg(fmt.fmt.pix_mp.width)
-                                     .arg(fmt.fmt.pix_mp.height));
+
+        emit message(QString("New Format:\t %1; %2x%3")
+                     .arg(fcc2s(fmt.fmt.pix.pixelformat).c_str())
+                     .arg(fmt.fmt.pix_mp.width)
+                     .arg(fmt.fmt.pix_mp.height));
 
     CLEAR(req);
     req.count = 2;
@@ -207,7 +213,8 @@ void CaptureWorker::init_device(void)
                     //perror("mmap");
                     exit(EXIT_FAILURE);
             }
-            if(close)
+            QCoreApplication::processEvents();
+            if(stop)
             {
                 break;
             }
@@ -220,10 +227,11 @@ void CaptureWorker::init_device(void)
             buf.memory = V4L2_MEMORY_MMAP;
             buf.index = i;
             xioctl(fd, VIDIOC_QBUF, &buf);
-            if(close)
+            QCoreApplication::processEvents();
+            if(stop)
             {
                 break;
-            }
+            }            
     }
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 }
@@ -270,11 +278,12 @@ void CaptureWorker::print_video_formats()
     memset(&fmtdesc, 0, sizeof(fmtdesc));
     fmtdesc.type = type;
     QString msg;
-    msg.append("Pixel formats supported:");
-    while ((v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) >= 0) && (!close))
+    msg.append("Pixel formats supported: ");
+    while ((v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) >= 0) && (!stop))
     {
-        msg.append(QString(fcc2s(fmtdesc.pixelformat).c_str()));
+        msg.append(QString("%1; ").arg((fcc2s(fmtdesc.pixelformat).c_str())));
         fmtdesc.index++;
+        QCoreApplication::processEvents();
     }
     emit message(msg);
 }
@@ -314,7 +323,7 @@ void CaptureWorker::process()
     print_video_formats();
     disable_camera_optimisation();
 
-    while(!close)
+    while(!stop)
     {
         getFrameV4l2();
         emit imageCaptured(frame);
@@ -325,6 +334,7 @@ void CaptureWorker::process()
             captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888);
             emit qimageCaptured(captFrame);
         }
+        QCoreApplication::processEvents();
     }
     stop_capturing();
     uninit_device();
@@ -353,7 +363,7 @@ void CaptureWorker::process()
 
 void CaptureWorker::stopCapturing()
 {    
-    close = 1;    
+    stop = 1;
     /* This is called twice (after the close becomes 1) therefore I commented it out here */
     //stop_capturing();
 }
