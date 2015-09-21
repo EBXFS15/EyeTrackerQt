@@ -77,16 +77,11 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(&captureWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
     connect(&eyetrackerWorker, SIGNAL(message(QString)), this, SLOT(onTrackerMessage(QString)));
 
-    connect(ui->quitBtn,SIGNAL(clicked()),this,SLOT(onClosed()));
+    connect(ui->quitBtn,SIGNAL(pressed()),this,SLOT(onClosed()));
     connect(ui->btn_disable_preview,SIGNAL(clicked()),this,SLOT(togglePreview()));
     connect(ui->btn_disable_processing,SIGNAL(clicked()),this,SLOT(toggleProcessing()));
 
     connect(&captureWorker, SIGNAL(gotFrame(qint64)), this, SLOT(onGotFrame(qint64)));
-
-
-    /** Signals to stop the workers. Some are less relevant but it seems to be better to do it this way. */
-    connect(this, SIGNAL(stopEbxEyeTracker()),&eyetrackerWorker, SLOT(abortThread()));
-    connect(this, SIGNAL(stopEbxCaptureWorker()),&captureWorker, SLOT(stopCapturing()));
 
 
     captureWorker.moveToThread(&captureThread);
@@ -160,13 +155,9 @@ void EyeTrackerWindow::onClosed()
     /**
      * Stop eyetracker and capture
      */
-    emit stopEbxEyeTracker();
-    emit stopEbxCaptureWorker();
-    captureThread.exit();
-    eyetrackerThread.exit();
-
+    captureWorker.stopCapturing();
     captureThread.wait();
-
+    eyetrackerWorker.abortThread();
     eyetrackerThread.wait();
 
     this->close();
@@ -197,7 +188,6 @@ void EyeTrackerWindow::onGotFrame(qint64 id)
     rxTimeStamp = (((qint64)gotTime.tv_sec) * 1000000 + ((qint64)gotTime.tv_nsec)/1000);
     latency = (rxTimeStamp-id)/1000;
     fps = 1000000/((double)(rxTimeStamp - previousTimestamp));
-    QCoreApplication::processEvents();
     if (avgLatency < 0)
     {
         avgLatency = latency;
@@ -219,7 +209,6 @@ void EyeTrackerWindow::onGotFrame(qint64 id)
         emit gotNewFrame(id, 255);
         count = 0;
     }
-    QCoreApplication::processEvents();
 }
 
 

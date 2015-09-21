@@ -52,7 +52,6 @@ int CaptureWorker::getFrameV4l2(void)
             tv.tv_sec = 2;
             tv.tv_usec = 0;
             r = select(fd + 1, &fds, NULL, NULL, &tv);
-            QCoreApplication::processEvents();
         }
         while (((r == -1) && (errno = EINTR)) && (!stop));
 
@@ -213,7 +212,6 @@ void CaptureWorker::init_device(void)
                     //perror("mmap");
                     exit(EXIT_FAILURE);
             }
-            QCoreApplication::processEvents();
             if(stop)
             {
                 break;
@@ -227,7 +225,6 @@ void CaptureWorker::init_device(void)
             buf.memory = V4L2_MEMORY_MMAP;
             buf.index = i;
             xioctl(fd, VIDIOC_QBUF, &buf);
-            QCoreApplication::processEvents();
             if(stop)
             {
                 break;
@@ -283,7 +280,6 @@ void CaptureWorker::print_video_formats()
     {
         msg.append(QString("%1; ").arg((fcc2s(fmtdesc.pixelformat).c_str())));
         fmtdesc.index++;
-        QCoreApplication::processEvents();
     }
     emit message(msg);
 }
@@ -310,13 +306,12 @@ CaptureWorker::~CaptureWorker()
       * It surprises me that we have nothing to cleanup here.
       * I think the buffer cleanup may be placed here.
       **/
-    uninit_device();
-    v4l2_close(fd);
+    //uninit_device();
+    //v4l2_close(fd);
 }
 
 void CaptureWorker::process()
 {
-    #ifdef USE_DIRECT_V4L2
     open_device();
     init_device();
     start_capturing();
@@ -334,38 +329,16 @@ void CaptureWorker::process()
             captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888);
             emit qimageCaptured(captFrame);
         }
-        QCoreApplication::processEvents();
     }
     stop_capturing();
     uninit_device();
     close_device();    
-    emit finished();
-    #else
-    CvCapture* capture = cvCreateCameraCapture( -1 );
-    IplImage *frame=NULL;
-    QImage captFrame;
-    while( m_close==false)
-    {
-        frame = cvQueryFrame(capture);
-        if(frame)
-        {
-            double timestamp = cvGetCaptureProperty(capture,CV_CAP_PROP_POS_MSEC);
-            captFrame = QImage((const uchar*)frame->imageData, 640, 480, QImage::Format_RGB888).copy();
-            emit imageCaptured(captFrame, timestamp);
-        }
-        sleep(1);
-    }
-
-    cvReleaseCapture( &capture );
-    emit finished();
-    #endif
+    this->thread()->quit();
 }
 
 void CaptureWorker::stopCapturing()
-{    
+{
     stop = 1;
-    /* This is called twice (after the close becomes 1) therefore I commented it out here */
-    //stop_capturing();
 }
 
 void CaptureWorker::setCenter(int x, int y)

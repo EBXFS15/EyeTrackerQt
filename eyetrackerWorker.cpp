@@ -20,7 +20,6 @@ EyeTrackerWorker::~EyeTrackerWorker()
 
 void EyeTrackerWorker::onImageCaptured(IplImage image)
 {
-    QCoreApplication::processEvents();
     if((0 == close) && (cascade!=NULL) && (true == processing))
     {
         cvCvtColor(&image,&grayImg,CV_RGB2GRAY);
@@ -42,7 +41,7 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
 
     if(close)
     {
-        emit finished();
+        this->thread()->quit();
     }
 }
 

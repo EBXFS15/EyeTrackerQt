@@ -13,7 +13,7 @@ EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
 }
 
 void EbxMonitorWorker::sarchMatch(){    
-    int tmpDelay = delayAfterEbxMonitorReset;
+    //int tmpDelay = delayAfterEbxMonitorReset;
     triggerActive = 0;
     flushOldMeasurementData();
     mytimer.start(500);

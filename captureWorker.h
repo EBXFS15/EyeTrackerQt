@@ -33,8 +33,6 @@ struct buffer {
 #define DEF_IMG_WIDTH  320
 #define DEF_IMG_HEIGHT 240
 
-#define USE_DIRECT_V4L2
-
 class CaptureWorker: public QObject
 {
     Q_OBJECT
@@ -55,11 +53,12 @@ class CaptureWorker: public QObject
     void disable_camera_optimisation(void);
 
     void togglePreview();
+    void stopCapturing();
 
     public slots:
     void process();
     void setCenter(int x, int y);
-    void stopCapturing();    
+
 
     signals :
     void finished();
