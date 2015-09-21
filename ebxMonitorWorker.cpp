@@ -12,7 +12,7 @@ EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
     connect(&mytimer,SIGNAL(timeout()),this,SLOT(activateTrigger()));
 }
 
-void EbxMonitorWorker::sarchMatch(){    
+void EbxMonitorWorker::searchMatch(){
     //int tmpDelay = delayAfterEbxMonitorReset;
     triggerActive = 0;
     flushOldMeasurementData();
@@ -105,6 +105,10 @@ void EbxMonitorWorker::fetchAndParseMeasurementData()
     }    
 }
 
+bool toAscending( Timestamp * t1 , Timestamp * t2 )
+{
+    return t1->getPosition() < t2->getPosition();
+}
 
 void EbxMonitorWorker::storeMeasurementData(QList<QString> lines)
 {
@@ -148,8 +152,6 @@ void EbxMonitorWorker::storeMeasurementData(QList<QString> lines)
 
         }
     }
-    qSort(listOfTimestamps);
-
 }
 
 void EbxMonitorWorker::activateTrigger()
@@ -195,10 +197,7 @@ void EbxMonitorWorker::findMatchingTimestamps(Timestamp * criteria)
                              << matchingCandidate->getAlternativeId();
                 }
             }
-            /**
-             * This should work and reorder the elements.
-             */
-            qSort(results);
+            qSort(results.begin(),results.end(),toAscending);
             Timestamp * previousTimestamp = 0;
             int count = 0;
             foreach(Timestamp * tmpTimestamp, results)

@@ -26,9 +26,9 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
      */
     ebxMonitorWorker = new EbxMonitorWorker();
     setupEbxMonitorTree();
-    connect(&ebxMonitorThread, SIGNAL(started()),ebxMonitorWorker,SLOT(sarchMatch()));
+    //connect(&ebxMonitorThread, SIGNAL(started()),ebxMonitorWorker,SLOT(searchMatch()));
 
-    connect(this, SIGNAL(sampleEbxMonitor()), ebxMonitorWorker, SLOT(sarchMatch()));
+    connect(this, SIGNAL(sampleEbxMonitor()), ebxMonitorWorker, SLOT(searchMatch()));
     connect(this, SIGNAL(setNewEnqueueingDelay(uint)), ebxMonitorWorker, SLOT(setNewEnqueueingDelay(uint)));
 
     connect(ebxMonitorWorker, SIGNAL(reportInitialTimestamp(QString)), this, SLOT(reportInitialTimestamp(QString)));
@@ -63,12 +63,6 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     //connect(&eyetrackerThread, SIGNAL(finished()), &eyetrackerThread, SLOT(deleteLater()));
 
     connect(&captureWorker, SIGNAL(imageCaptured(IplImage)), &eyetrackerWorker, SLOT(onImageCaptured(IplImage)));
-
-    /**
-      * I do not see any reason why the signal has to pass through the main GUI Thread.
-      * The emit message on capture.cpp is more than enough.
-      */
-    //connect(&eyetrackerWorker, SIGNAL(eyeFound(int,int)), this, SLOT(onEyeFound(int,int)));
 
     /**
      * Separation is not really needed but for the moment there is no reason to remove it.
@@ -134,12 +128,12 @@ void EyeTrackerWindow::onTrackerMessage(QString msg)
 void EyeTrackerWindow::onClosed()
 {
     /**
-     * Avoid delay be stopping preview
+     * Avoid delay by stopping preview
      * Would be nicer with signals but ok...
      * */
     togglePreview();
     /**
-     * Avoid delay be stopping eyetracker
+     * Avoid delay by stopping eyetracker
      * Would be nicer with signals but ok...
      * */
     toggleProcessing();
@@ -155,10 +149,15 @@ void EyeTrackerWindow::onClosed()
     /**
      * Stop eyetracker and capture
      */
-    captureWorker.stopCapturing();
-    captureThread.wait();
+    // eyeTrackerthread must be stopped before captureThread to be sure
+    // that it is aborted. Otherwise captureThread can be stopped without
+    // sending the last onImageCaptured signal. Once the eyeTrackerThread
+    // is lost, the signal/slot connection is lost between
+    // capture and eyetracker threads and nothing happens.
     eyetrackerWorker.abortThread();
     eyetrackerThread.wait();
+    captureWorker.stopCapturing();
+    captureThread.wait();
 
     this->close();
 }
@@ -228,6 +227,7 @@ void EyeTrackerWindow::enableInterception()
 void EyeTrackerWindow::on_btn_intercept_pressed()
 {
     ui->btn_intercept->setEnabled(false);
+    cleanEbxMonitorTree();
     emit sampleEbxMonitor();
 }
 
@@ -281,7 +281,6 @@ void EyeTrackerWindow::reportMeasurementPoint(QString csvData)
         rowItems << tmpItem;
     }
     ebxMonitorModel->invisibleRootItem()->appendRow(rowItems);
-
 }
 
 void EyeTrackerWindow::reportEnd(int count)

@@ -62,7 +62,7 @@ public slots:
     void gotNewFrame(qint64 timestamp, int measurementPosition);
     void flushOldMeasurementData();
     void fetchAndParseMeasurementData();
-    void sarchMatch();
+    void searchMatch();
     void stopMonitoring();
     void setNewEnqueueingDelay(unsigned int delay);
     void findMatchingTimestamps(Timestamp * criteria);
