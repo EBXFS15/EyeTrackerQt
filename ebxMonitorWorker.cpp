@@ -15,6 +15,7 @@ EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
 void EbxMonitorWorker::searchMatch(){
     //int tmpDelay = delayAfterEbxMonitorReset;
     triggerActive = 0;
+    cleanupMemory();
     flushOldMeasurementData();
     mytimer.start(500);
     fetchAndParseMeasurementData();
@@ -33,19 +34,6 @@ void EbxMonitorWorker::setNewEnqueueingDelay(unsigned int delay)
 
 void EbxMonitorWorker::flushOldMeasurementData()
 {  
-    if(!listOfTimestamps.isEmpty())
-    {
-        foreach (Timestamp * item , listOfTimestamps)
-        {
-            delete item;
-        }
-        listOfTimestamps.clear();
-    }
-    if(!matchingTableFromFInalId.isEmpty())
-    {
-        matchingTableFromFInalId.clear();
-    }
-
     FILE* fd = fopen(EBX_DEVICE_PATH, "r"); // get a file descriptor somehow
     if (fd!=0)
     {
@@ -67,6 +55,22 @@ void EbxMonitorWorker::flushOldMeasurementData()
             file.close();
         }
         fclose(fd);        
+    }
+}
+
+void EbxMonitorWorker::cleanupMemory()
+{
+    if(!listOfTimestamps.isEmpty())
+    {
+        foreach (Timestamp * item , listOfTimestamps)
+        {
+            delete item;
+        }
+        listOfTimestamps.clear();
+    }
+    if(!matchingTableFromFInalId.isEmpty())
+    {
+        matchingTableFromFInalId.clear();
     }
 }
 
@@ -254,6 +258,6 @@ void EbxMonitorWorker::gotNewFrame(qint64 frameId,int measurementPosition){
 
 EbxMonitorWorker::~EbxMonitorWorker()
 {
-    flushOldMeasurementData();
+    cleanupMemory();
 }
 

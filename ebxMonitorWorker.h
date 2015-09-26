@@ -43,6 +43,7 @@ private:
     QList<Timestamp *>  matchingTableFromFInalId;
     QList<Timestamp *>  results;
     void storeMeasurementData(QList<QString> lines);
+    void cleanupMemory();
 
 public:
     explicit EbxMonitorWorker(QObject *parent = 0);
@@ -60,7 +61,7 @@ signals:
 
 public slots:    
     void gotNewFrame(qint64 timestamp, int measurementPosition);
-    void flushOldMeasurementData();
+    void flushOldMeasurementData();    
     void fetchAndParseMeasurementData();
     void searchMatch();
     void stopMonitoring();
