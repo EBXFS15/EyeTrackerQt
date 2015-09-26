@@ -65,10 +65,8 @@ void EbxMonitorWorker::flushOldMeasurementData()
                 lines.append(temp.split(QString("\n")));
             }
             file.close();
-
         }
-        fclose(fd);
-        emit done();
+        fclose(fd);        
     }
 }
 
@@ -96,12 +94,10 @@ void EbxMonitorWorker::fetchAndParseMeasurementData()
             storeMeasurementData(lines);
         }
         fclose(fd);
-        emit done();
     }
     else
     {
-        emit message("The filehandel for the ebx_monitor file could not be gathered.");
-        emit done();
+        emit message("The filehandel for the ebx_monitor file could not be gathered.");        
     }    
 }
 
@@ -214,6 +210,7 @@ void EbxMonitorWorker::findMatchingTimestamps(Timestamp * criteria)
             }
 
             emit reportEnd(count);
+            emit done();
 
         }
         else
