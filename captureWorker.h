@@ -50,7 +50,8 @@ class CaptureWorker: public QObject
     void start_capturing(void);
     void stop_capturing(void);
     void print_video_formats(void);
-    void disable_camera_optimisation(void);
+    void disable_camera_autoexposure(void);
+    void set_fix_framerate(uint framerate);
 
     void togglePreview();
     void stopCapturing();
@@ -66,7 +67,6 @@ class CaptureWorker: public QObject
     void qimageCaptured(QImage image);
     void message(QString msg);
     void gotFrame(qint64 id);
-    void pseudoBrightness(int value);
 
 
     private:
@@ -76,7 +76,8 @@ class CaptureWorker: public QObject
     struct v4l2_format              fmt;
     struct v4l2_buffer              buf;
     struct v4l2_requestbuffers      req;
-    enum v4l2_buf_type              type;
+    enum   v4l2_buf_type            type;
+    struct v4l2_streamparm          sparams;
     fd_set                          fds;
     struct timeval                  tv;
     int                             r, fd;

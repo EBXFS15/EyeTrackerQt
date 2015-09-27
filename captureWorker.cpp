@@ -39,6 +39,7 @@ CaptureWorker::CaptureWorker()
     frame.imageData = (char *)cvAlloc(frame.imageSize);
     eyeCenter.x=-1;
     eyeCenter.y=-1;
+    memset (&sparams,0,sizeof(struct v4l2_streamparm));
 }
 
 
@@ -62,21 +63,18 @@ int CaptureWorker::getFrameV4l2(void)
                 return 0;
             }
             emit message(QString("select error"));
-            //perror("select");
+            perror("select error");
             return errno;
         }
 
         if (0 == r)
         {
             emit message(QString("select timeout"));
-            //fprintf(stderr, "select timeout\n");
-            //exit(EXIT_FAILURE);
         }
 
         CLEAR(buf);
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
-
         if (-1 == xioctl(fd, VIDIOC_DQBUF, &buf))
         {
             switch (errno)
@@ -111,8 +109,7 @@ int CaptureWorker::getFrameV4l2(void)
               frame.imageSize);
         }
 
-        //timestamp = 1000 * buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000;
-        timestamp = buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000000;        
+        timestamp = buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000000;
         emit gotFrame(((qint64)buf.timestamp.tv_sec) * 1000000 + ((qint64)buf.timestamp.tv_usec));
 
         xioctl(fd, VIDIOC_QBUF, &buf);
@@ -157,7 +154,28 @@ void CaptureWorker::init_device(void)
 
     if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt)) {
         emit message(QString("Could not obtain camera format"));
+        perror("Could not obtain camera format");
         exit(EXIT_FAILURE);
+    }
+
+    //list all possible fps for default format
+    struct v4l2_frmivalenum frmival;
+    memset(&frmival,0,sizeof(frmival));
+    frmival.pixel_format = fmt.fmt.pix_mp.pixelformat;
+    frmival.width = DEF_IMG_WIDTH;
+    frmival.height = DEF_IMG_HEIGHT;
+    emit message(QString("list of possible framerate:"));
+    while (ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmival) == 0)
+    {
+        if (frmival.type == V4L2_FRMIVAL_TYPE_DISCRETE)
+        {
+            emit message(QString("fps=")+QString::number(1.0*frmival.discrete.denominator/frmival.discrete.numerator));
+        }
+        else
+        {
+            //do nothing
+        }
+        frmival.index++;
     }
 
     emit message(QString("Current Format:\t %1; %2x%3")
@@ -167,17 +185,18 @@ void CaptureWorker::init_device(void)
 
     fmt.fmt.pix.width       = DEF_IMG_WIDTH;
     fmt.fmt.pix.height      = DEF_IMG_HEIGHT;
-    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;//
-    //destfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;//
+    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
     fmt.fmt.pix.field       = V4L2_FIELD_ANY;
     if(-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
     {
         emit message(QString("Error setting pixel format"));
+        perror("Error setting pixel format");
         exit(EXIT_FAILURE);
     }
 
     if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt)) {
             emit message(QString("Could not obtain camera format"));
+            perror("Could not obtain camera format");
             exit(EXIT_FAILURE);
         }
 
@@ -210,7 +229,7 @@ void CaptureWorker::init_device(void)
 
             if (MAP_FAILED == buffers[n_buffers].start) {
                     emit message(QString("Memory mapping error"));
-                    //perror("mmap");
+                    perror("mmap error");
                     exit(EXIT_FAILURE);
             }
             if(stop)
@@ -245,7 +264,7 @@ void CaptureWorker::open_device(void)
     if (fd < 0)
     {
         emit message(QString("Cannot open video capture device"));
-        //perror("Cannot open video capture device");
+        perror("Cannot open video capture device");
         exit(EXIT_FAILURE);
     }
 
@@ -269,6 +288,47 @@ void CaptureWorker::open_device(void)
     }
 }
 
+void CaptureWorker::set_fix_framerate(uint framerate)
+{
+
+    // try to set framerate to given framerate
+    sparams.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    if (-1 == xioctl (fd, VIDIOC_G_PARM, &sparams))
+    {
+        perror("Cannot get parameter from device.");
+        exit(EXIT_FAILURE);
+    }
+    if (!sparams.parm.capture.capability & V4L2_CAP_TIMEPERFRAME)
+    {
+       perror("Cannot change time per frame (FPS)");
+    }
+    else
+    {
+        sparams.parm.capture.timeperframe.numerator = 1;
+        sparams.parm.capture.timeperframe.denominator = framerate;
+        if (-1 == xioctl (fd, VIDIOC_S_PARM, &sparams))
+        {
+            perror("Cannot set fps");
+            exit(EXIT_FAILURE);
+        }
+        CLEAR (sparams);
+        sparams.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (-1 == xioctl (fd, VIDIOC_G_PARM, &sparams))
+        {
+            perror("Cannot get parameter from device.");
+            exit(EXIT_FAILURE);
+        }
+        if (sparams.parm.capture.timeperframe.denominator != framerate)
+        {
+            emit message(QString("Cannot set fps to ")
+                         + QString::number(framerate)
+                         + QString(", current fps is ")
+                         + QString::number(sparams.parm.capture.timeperframe.denominator
+                                          /sparams.parm.capture.timeperframe.numerator));
+        }
+    }
+}
+
 void CaptureWorker::print_video_formats()
 {
     struct v4l2_fmtdesc fmtdesc;
@@ -285,7 +345,7 @@ void CaptureWorker::print_video_formats()
     emit message(msg);
 }
 
-void CaptureWorker::disable_camera_optimisation()
+void CaptureWorker::disable_camera_autoexposure()
 {
     struct v4l2_control ctl;
     ctl.id = V4L2_CID_EXPOSURE_AUTO;
@@ -315,16 +375,15 @@ void CaptureWorker::process()
 {
     open_device();
     init_device();
+    set_fix_framerate(15);
     start_capturing();
     print_video_formats();
-    disable_camera_optimisation();
+    disable_camera_autoexposure();
 
     while(!stop)
     {
         getFrameV4l2();
         emit imageCaptured(frame);
-        //emit pseudoBrightness((int)(frame.imageData[frame.imageSize/2]));
-        //cvCvtColor(&frame, &frame, CV_BGR2RGB);
         if(preview==true)
         {
             cvDrawCircle(&frame,eyeCenter,20,CV_RGB(0,0,255 ),2);
@@ -335,7 +394,7 @@ void CaptureWorker::process()
     }
     stop_capturing();
     uninit_device();
-    close_device();    
+    close_device();
     this->thread()->quit();
 }
 
