@@ -9,10 +9,8 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::EyeTrackerWindow)
 {
-    ui->setupUi(this);
 
-    //register Iplimage to use slot/signal with Qt
-    qRegisterMetaType<IplImage>("IplImage");
+    ui->setupUi(this);
 
     ui->label_message->setText(QString("Messages:\n"));    
 
@@ -25,7 +23,15 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
      * In addition to the parsing the ebxMonitorWorker collects the timestamps from the top level aplication.
      */
     ebxMonitorWorker = new EbxMonitorWorker();
+
+
     setupEbxMonitorTree();
+
+
+
+    //register Iplimage to use slot/signal with Qt
+    qRegisterMetaType<IplImage>("IplImage");
+
     //connect(&ebxMonitorThread, SIGNAL(started()),ebxMonitorWorker,SLOT(searchMatch()));
 
     connect(this, SIGNAL(sampleEbxMonitor()), ebxMonitorWorker, SLOT(searchMatch()));

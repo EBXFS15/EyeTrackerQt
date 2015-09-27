@@ -1,16 +1,23 @@
 #include "ebxMonitorWorker.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 
-#include <QDebug>
 
 
 EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
 {
+    /**
+      * Load driver if not already loaded.
+      */
+
+    if(access(EBX_DEVICE_PATH, F_OK)==0)
+    {
+        QProcess p;
+        p.start(EBX_SETUP_SCRIPT_PATH, QStringList() << EBX_SETUP_SCRIPT_MEASUREMENT_POINTS);
+        p.waitForFinished();
+    }
+
     triggerActive = 0;
     nbrOfFramesToIgnoreDefault = 0;
-    //connect(this,SIGNAL(searchMatchingTimestamps(Timestamp)), this, SLOT(findMatchingTimestamps(Timestamp)));
+    //connect(this,SIGNAL(searchMatchingTimestamps(Timestamp)), this, SLOT(findMatchingTimestamps(Timestamp)));       
     connect(&mytimer,SIGNAL(timeout()),this,SLOT(activateTrigger()));
 }
 

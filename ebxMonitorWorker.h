@@ -14,10 +14,16 @@
 #include <sys/time.h>
 #include <QMutex>
 #include <QQueue>
-#include <QProcess>
 #include "timestamp.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <QProcess>
+#include <QDebug>
 
 #define EBX_DEVICE_PATH "/dev/ebx_monitor"
+#define EBX_SETUP_SCRIPT_PATH "/opt/ldd/setup.sh"
+#define EBX_SETUP_SCRIPT_MEASUREMENT_POINTS "90"
 #define EBX_CMD_START "start"
 #define EBX_READ_BUFFER (50 + 2)
 
@@ -29,9 +35,8 @@ class EbxMonitorWorker : public QObject
 private:
     QAtomicInt          stop;
     QAtomicInt          triggerActive;
-    QAtomicInt          matchingIsPending;
-    QAtomicInt          enqueNewFrames;
     //QAtomicInt          matchingIsPending;
+    QAtomicInt          enqueNewFrames;    
     QAtomicInt          nbrOfFramesToIgnoreDefault;
     QAtomicInt          nbrOfFramesToIgnore;
     QTimer              mytimer;
