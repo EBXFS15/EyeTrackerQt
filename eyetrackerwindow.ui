@@ -98,8 +98,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>671</width>
-       <height>409</height>
+       <width>98</width>
+       <height>28</height>
       </rect>
      </property>
      <attribute name="label">
@@ -236,7 +236,7 @@ Preview</string>
      </rect>
     </property>
     <property name="text">
-     <string>Check next frame</string>
+     <string>Search matching frame</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_fps_avg_txt">
@@ -296,12 +296,12 @@ Preview</string>
      <rect>
       <x>690</x>
       <y>340</y>
-      <width>97</width>
+      <width>221</width>
       <height>22</height>
      </rect>
     </property>
     <property name="text">
-     <string>Continous</string>
+     <string>Search for matching frame</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="chk_stop_interception">
