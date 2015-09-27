@@ -236,7 +236,7 @@ Preview</string>
      </rect>
     </property>
     <property name="text">
-     <string>Start searching...</string>
+     <string>Search matching frame...</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_fps_avg_txt">
@@ -295,13 +295,13 @@ Preview</string>
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>330</y>
-      <width>151</width>
+      <y>340</y>
+      <width>221</width>
       <height>22</height>
      </rect>
     </property>
     <property name="text">
-     <string>Search endlessly</string>
+     <string>Search for matching frame</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="chk_stop_interception">
