@@ -11,7 +11,7 @@
 #include "ebxMonitorWorker.h"
 
 
-#define INTERCEPTION_FRAME_COUNT 10
+#define INTERCEPTION_FRAME_COUNT 0
 
 namespace Ui {
 class EyeTrackerWindow;
@@ -51,7 +51,7 @@ signals:
     void stopEbxCaptureWorker();
     void stopEbxEyeTracker();
     void setCenter(int x, int y);
-    void setNewEnqueueingDelay(unsigned int delay);
+    void setNewFrameNumberOffset(unsigned int delay);
 
 public slots:
     void onCaptured(QImage frame);

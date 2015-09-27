@@ -18,6 +18,8 @@
 #include "timestamp.h"
 
 #define EBX_DEVICE_PATH "/dev/ebx_monitor"
+#define EBX_CMD_START "start"
+#define EBX_READ_BUFFER (50 + 2)
 
 class EbxMonitorWorker : public QObject
 {
@@ -30,18 +32,19 @@ private:
     QAtomicInt          matchingIsPending;
     QAtomicInt          enqueNewFrames;
     //QAtomicInt          matchingIsPending;
-    QAtomicInt          delayAfterEbxMonitorReset;
-    QAtomicInt          nmbrOfIgnoredFrames;
+    QAtomicInt          nbrOfFramesToIgnoreDefault;
+    QAtomicInt          nbrOfFramesToIgnore;
     QTimer              mytimer;
 
 
 
     /**
-     * @brief listOfTimestamps is the main reference to the objects. This list is used to delete the objects.
+     * @brief By definition all newly created Timestamps shall be added to listOfTimestamps. All other lists just use pointers to these objects. During clean up these references get invalidated and all objects deleted.
      */
     QList<Timestamp *>  listOfTimestamps;
     QList<Timestamp *>  matchingTableFromFInalId;
     QList<Timestamp *>  results;
+
     void storeMeasurementData(QList<QString> lines);
     void cleanupMemory();
 
@@ -62,10 +65,11 @@ signals:
 public slots:    
     void gotNewFrame(qint64 timestamp, int measurementPosition);
     void flushOldMeasurementData();    
+    void sendCmdToEbxMonitor(QString cmd);
     void fetchAndParseMeasurementData();
     void searchMatch();
     void stopMonitoring();
-    void setNewEnqueueingDelay(unsigned int delay);
+    void setNewFrameNumberOffset(unsigned int nmrOfFrames);
     void findMatchingTimestamps(Timestamp * criteria);
     void activateTrigger();
 };

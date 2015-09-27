@@ -1,13 +1,15 @@
 #include "ebxMonitorWorker.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+
 #include <QDebug>
 
 
 EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
 {
     triggerActive = 0;
-    delayAfterEbxMonitorReset = 0;
+    nbrOfFramesToIgnoreDefault = 0;
     //connect(this,SIGNAL(searchMatchingTimestamps(Timestamp)), this, SLOT(findMatchingTimestamps(Timestamp)));
     connect(&mytimer,SIGNAL(timeout()),this,SLOT(activateTrigger()));
 }
@@ -25,52 +27,71 @@ void EbxMonitorWorker::searchMatch(){
 void EbxMonitorWorker::stopMonitoring()
 {
     stop = 1;
+    triggerActive = 1;
+    nbrOfFramesToIgnore = 0;
+    /**
+     * Release pending read by restarting measurement.
+     */
+    sendCmdToEbxMonitor(EBX_CMD_START);
 }
 
-void EbxMonitorWorker::setNewEnqueueingDelay(unsigned int delay)
+void EbxMonitorWorker::setNewFrameNumberOffset(unsigned int nmrOfFrames)
 {
-    delayAfterEbxMonitorReset = delay;
+    nbrOfFramesToIgnoreDefault = nmrOfFrames;
 }
 
 void EbxMonitorWorker::flushOldMeasurementData()
-{  
-    FILE* fd = fopen(EBX_DEVICE_PATH, "r"); // get a file descriptor somehow
-    if (fd!=0)
-    {
-        QFile file;
+{
+    /** The good old way to restart measurement */
+//    FILE* fd = fopen(EBX_DEVICE_PATH, "r");
+//    if (fd!=0)
+//    {
+//        char data[EBX_READ_BUFFER];
+//        while (!feof(fd) && !stop)
+//        {
+//            fgets(data,sizeof(data),fd);
+//        }
+//        fclose(fd);
+//    }
+    /** The new way to restart measurement */
+    sendCmdToEbxMonitor(EBX_CMD_START);
+}
 
-        if (!file.open(fd, QIODevice::ReadOnly))
+void EbxMonitorWorker::sendCmdToEbxMonitor(QString cmd)
+{
+    if(access(EBX_DEVICE_PATH, F_OK)==0)
+    {
+        FILE* fd = fopen(EBX_DEVICE_PATH, "w");
+        if (fd!=0)
         {
-            emit message("The QFile could not open the ebx_monitor file.");
+            fputs(cmd.toLocal8Bit().constData(),fd);
+            fclose(fd);
         }
-        else
-        {
-            QTextStream in(&file);
-            QList<QString> lines;
-            while(!in.atEnd() && (!stop))
-            {
-                QString temp = in.readAll();
-                lines.append(temp.split(QString("\n")));
-            }
-            file.close();
-        }
-        fclose(fd);        
     }
 }
 
+/**
+ * @brief By definition all newly created Timestamps shall be added to listOfTimestamps. All other lists just use pointers to these objects. During clean up these references get invalidated and all objects deleted.
+ *
+ */
+
 void EbxMonitorWorker::cleanupMemory()
-{
-    if(!listOfTimestamps.isEmpty())
+{    
+    if(!matchingTableFromFInalId.isEmpty())
     {
+        matchingTableFromFInalId.clear();
+    }
+    if(!results.isEmpty())
+    {
+        results.clear();
+    }
+    if(!listOfTimestamps.isEmpty())
+    {        
         foreach (Timestamp * item , listOfTimestamps)
         {
             delete item;
         }
         listOfTimestamps.clear();
-    }
-    if(!matchingTableFromFInalId.isEmpty())
-    {
-        matchingTableFromFInalId.clear();
     }
 }
 
@@ -78,25 +99,26 @@ void EbxMonitorWorker::fetchAndParseMeasurementData()
 {
     FILE* fd = fopen(EBX_DEVICE_PATH, "r"); // get a file descriptor somehow
     if (fd!=0)
-    {
-        QFile file;
-
-        if (!file.open(fd, QIODevice::ReadOnly))
+    {        
+        QList<QString> lines;
+        char data[EBX_READ_BUFFER];  /* One extra for nul char. */
+        while (!feof(fd) && !stop)
         {
-            emit message("The QFile could not open the ebx_monitor file.");            
-        }
-        else
-        {
-            QTextStream in(&file);
-            QString temp;
-            while(!in.atEnd() && (!stop))
+            if(fgets(data,sizeof(data),fd))
             {
-                temp.append(in.readAll());
+                if(data[0] == '\0')
+                {
+                    data[0] = '*';
+                    lines.append(QString(data).replace(QChar('*'), QString("")));
+                }
+                else
+                {
+                    lines.append(QString(data));
+                }
             }
-            file.close();
-            QList<QString> lines = temp.split(QString("\n"));
-            storeMeasurementData(lines);
         }
+
+        storeMeasurementData(lines);
         fclose(fd);
     }
     else
@@ -149,7 +171,6 @@ void EbxMonitorWorker::storeMeasurementData(QList<QString> lines)
                 }
             }
             listOfTimestamps << newTimestamp;
-
         }
     }
 }
@@ -158,7 +179,7 @@ void EbxMonitorWorker::activateTrigger()
 {
     mytimer.stop();
     triggerActive = 1;
-    nmbrOfIgnoredFrames  = delayAfterEbxMonitorReset;
+    nbrOfFramesToIgnore  = nbrOfFramesToIgnoreDefault;
 }
 
 void EbxMonitorWorker::findMatchingTimestamps(Timestamp * criteria)
@@ -175,14 +196,19 @@ void EbxMonitorWorker::findMatchingTimestamps(Timestamp * criteria)
                 criteria->setAlternativeId(match->getAlternativeId());
                 foundAtLeastOneMatchingElement = true;
             }
+            /** Avoid long waiting if appication shall stop **/
+            if(stop)
+            {
+                break;
+            }
         }
 
         if (foundAtLeastOneMatchingElement)
         {
             emit message(QString("\nMatch found for %1!").arg(criteria->getId()));
-            qDebug() << "Comparision for timestamp: " << criteria->getId() << " Alternative id: " << criteria->getAlternativeId();
-            qDebug() << "Not matching elements:";
-            qDebug() << "ID, Timestamp, Position, Alternative ID";
+            // qDebug() << "Comparision for timestamp: " << criteria->getId() << " Alternative id: " << criteria->getAlternativeId();
+            // qDebug() << "Not matching elements:";
+            // qDebug() << "ID, Timestamp, Position, Alternative ID";
 
             foreach (Timestamp * matchingCandidate, listOfTimestamps) {
                 if (((*matchingCandidate) == (*criteria)) || ((*criteria) == (*matchingCandidate)))
@@ -191,10 +217,15 @@ void EbxMonitorWorker::findMatchingTimestamps(Timestamp * criteria)
                 }
                 else
                 {
-                    qDebug() << matchingCandidate->getId() << ", "
-                             << matchingCandidate->getTimestamp() << ", "
-                             << matchingCandidate->getPosition() << ", "
-                             << matchingCandidate->getAlternativeId();
+//                    qDebug() << matchingCandidate->getId() << ", "
+//                             << matchingCandidate->getTimestamp() << ", "
+//                             << matchingCandidate->getPosition() << ", "
+//                             << matchingCandidate->getAlternativeId();
+                }
+                /** Avoid long waiting if appication shall stop **/
+                if(stop)
+                {
+                    break;
                 }
             }
             qSort(results.begin(),results.end(),toAscending);
@@ -211,6 +242,11 @@ void EbxMonitorWorker::findMatchingTimestamps(Timestamp * criteria)
                     emit reportMeasurementPoint(tmpTimestamp->toString(previousTimestamp));
                 }
                 previousTimestamp = tmpTimestamp;
+                /** Avoid long waiting if appication shall stop **/
+                if(stop)
+                {
+                    break;
+                }
             }
 
             emit reportEnd(count);
@@ -230,14 +266,16 @@ void EbxMonitorWorker::findMatchingTimestamps(Timestamp * criteria)
             {
                 //triggerActive.store(1);
             }
+            emit done();
         }
         delete criteria;
     }
 }
 
 
-void EbxMonitorWorker::gotNewFrame(qint64 frameId,int measurementPosition){
-    if(nmbrOfIgnoredFrames <= 0)
+void EbxMonitorWorker::gotNewFrame(qint64 frameId,int measurementPosition)
+{
+    if(nbrOfFramesToIgnore <= 0)
     {
         if (triggerActive.testAndSetAcquire(1,0))
         {
@@ -252,7 +290,7 @@ void EbxMonitorWorker::gotNewFrame(qint64 frameId,int measurementPosition){
     }
     else
     {
-        nmbrOfIgnoredFrames--;
+        nbrOfFramesToIgnore--;
     }
 }
 

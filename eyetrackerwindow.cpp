@@ -29,7 +29,7 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     //connect(&ebxMonitorThread, SIGNAL(started()),ebxMonitorWorker,SLOT(searchMatch()));
 
     connect(this, SIGNAL(sampleEbxMonitor()), ebxMonitorWorker, SLOT(searchMatch()));
-    connect(this, SIGNAL(setNewEnqueueingDelay(uint)), ebxMonitorWorker, SLOT(setNewEnqueueingDelay(uint)));
+    connect(this, SIGNAL(setNewFrameNumberOffset(uint)), ebxMonitorWorker, SLOT(setNewFrameNumberOffset(uint)));
 
     connect(ebxMonitorWorker, SIGNAL(reportInitialTimestamp(QString)), this, SLOT(reportInitialTimestamp(QString)));
     connect(ebxMonitorWorker, SIGNAL(reportMeasurementPoint(QString)), this, SLOT(reportMeasurementPoint(QString)));
@@ -128,6 +128,10 @@ void EyeTrackerWindow::onTrackerMessage(QString msg)
 void EyeTrackerWindow::onClosed()
 {
     /**
+      * Avoid pending interception loops
+      */
+    ui->chk_interception->setChecked(false);
+    /**
      * Avoid delay by stopping preview
      * Would be nicer with signals but ok...
      * */
@@ -178,7 +182,7 @@ void EyeTrackerWindow::onGotFrame(qint64 id)
     static double avgFps = -1;
     static qint64 rxTimeStamp;
     static qint64 previousTimestamp;
-    static int count = INTERCEPTION_FRAME_COUNT;
+    //static int count = INTERCEPTION_FRAME_COUNT;
     struct timespec gotTime;
     double fps = 0;
     double latency = 0;
@@ -197,17 +201,17 @@ void EyeTrackerWindow::onGotFrame(qint64 id)
         avgLatency = (avgLatency + latency)/2;
         avgFps = (avgFps + fps)/2;
         ui->label_latency_txt_avg->setText(QString("%1ms").arg(avgLatency));
-
         ui->label_fps_avg_txt->setText(QString("%1").arg(avgFps));
         ui->label_fps_txt->setText(QString("%1").arg(fps));
         ui->label_rxtime_txt->setText(QString("%1").arg(rxTimeStamp));        
         ui->label_latency_txt->setText(QString("%1ms").arg(latency));
     }
     previousTimestamp = rxTimeStamp;
-    if (count++ > INTERCEPTION_FRAME_COUNT){
+
+    //if ((count++) > INTERCEPTION_FRAME_COUNT){
         emit gotNewFrame(id, 255);
-        count = 0;
-    }
+    //    count = 0;
+    //}
 }
 
 
@@ -297,5 +301,5 @@ void EyeTrackerWindow::reportEnd(int count)
 
 void EyeTrackerWindow::on_scr_delay_enqueuing_valueChanged(int value)
 {
-    emit setNewEnqueueingDelay(value);
+    emit setNewFrameNumberOffset(value);
 }

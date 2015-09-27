@@ -76,6 +76,7 @@ int CaptureWorker::getFrameV4l2(void)
         CLEAR(buf);
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
+
         if (-1 == xioctl(fd, VIDIOC_DQBUF, &buf))
         {
             switch (errno)
@@ -322,6 +323,7 @@ void CaptureWorker::process()
     {
         getFrameV4l2();
         emit imageCaptured(frame);
+        //emit pseudoBrightness((int)(frame.imageData[frame.imageSize/2]));
         //cvCvtColor(&frame, &frame, CV_BGR2RGB);
         if(preview==true)
         {
@@ -329,6 +331,7 @@ void CaptureWorker::process()
             captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888);
             emit qimageCaptured(captFrame);
         }
+        QCoreApplication::processEvents();
     }
     stop_capturing();
     uninit_device();

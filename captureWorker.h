@@ -66,6 +66,7 @@ class CaptureWorker: public QObject
     void qimageCaptured(QImage image);
     void message(QString msg);
     void gotFrame(qint64 id);
+    void pseudoBrightness(int value);
 
 
     private:
