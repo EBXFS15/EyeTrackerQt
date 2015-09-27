@@ -144,9 +144,8 @@ void EyeTrackerWindow::onClosed()
 
     /**
      * Cleanup EbxMonitorWorker
-     */
+     */    
     emit stopEbxMonitor();
-    ebxMonitorThread.exit();
     ebxMonitorThread.wait();   
     cleanEbxMonitorTree();
 

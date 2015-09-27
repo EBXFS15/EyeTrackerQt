@@ -30,9 +30,10 @@ void EbxMonitorWorker::stopMonitoring()
     triggerActive = 1;
     nbrOfFramesToIgnore = 0;
     /**
-     * Release pending read by restarting measurement.
+     * Release possibly pending blocking read by restarting measurement.
      */
     sendCmdToEbxMonitor(EBX_CMD_START);
+    this->thread()->quit();
 }
 
 void EbxMonitorWorker::setNewFrameNumberOffset(unsigned int nmrOfFrames)
@@ -92,7 +93,7 @@ void EbxMonitorWorker::cleanupMemory()
             delete item;
         }
         listOfTimestamps.clear();
-    }
+    }    
 }
 
 void EbxMonitorWorker::fetchAndParseMeasurementData()
@@ -296,6 +297,6 @@ void EbxMonitorWorker::gotNewFrame(qint64 frameId,int measurementPosition)
 
 EbxMonitorWorker::~EbxMonitorWorker()
 {
-    cleanupMemory();
+    cleanupMemory();    
 }
 
