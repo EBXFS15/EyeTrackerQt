@@ -26,6 +26,10 @@
 #define EBX_SETUP_SCRIPT_MEASUREMENT_POINTS "90"
 #define EBX_CMD_START "start"
 #define EBX_READ_BUFFER (50 + 2)
+/**
+  * Minimum length is exepcted to be "0us, 0us, 0"
+  */
+#define EBX_READ_LINE_MINIMUM_LEN 11
 
 class EbxMonitorWorker : public QObject
 {
@@ -34,8 +38,7 @@ class EbxMonitorWorker : public QObject
 
 private:
     QAtomicInt          stop;
-    QAtomicInt          triggerActive;
-    //QAtomicInt          matchingIsPending;
+    QAtomicInt          triggerActive;    
     QAtomicInt          enqueNewFrames;    
     QAtomicInt          nbrOfFramesToIgnoreDefault;
     QAtomicInt          nbrOfFramesToIgnore;

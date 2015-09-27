@@ -8,7 +8,7 @@ EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
       * Load driver if not already loaded.
       */
 
-    if(access(EBX_DEVICE_PATH, F_OK)==0)
+    if(access(EBX_DEVICE_PATH, F_OK)!=0)
     {
         QProcess p;
         p.start(EBX_SETUP_SCRIPT_PATH, QStringList() << EBX_SETUP_SCRIPT_MEASUREMENT_POINTS);
@@ -50,17 +50,6 @@ void EbxMonitorWorker::setNewFrameNumberOffset(unsigned int nmrOfFrames)
 
 void EbxMonitorWorker::flushOldMeasurementData()
 {
-    /** The good old way to restart measurement */
-//    FILE* fd = fopen(EBX_DEVICE_PATH, "r");
-//    if (fd!=0)
-//    {
-//        char data[EBX_READ_BUFFER];
-//        while (!feof(fd) && !stop)
-//        {
-//            fgets(data,sizeof(data),fd);
-//        }
-//        fclose(fd);
-//    }
     /** The new way to restart measurement */
     sendCmdToEbxMonitor(EBX_CMD_START);
 }
@@ -125,7 +114,6 @@ void EbxMonitorWorker::fetchAndParseMeasurementData()
                 }
             }
         }
-
         storeMeasurementData(lines);
         fclose(fd);
     }
@@ -146,9 +134,9 @@ void EbxMonitorWorker::storeMeasurementData(QList<QString> lines)
     {
         QString data = line;
         /**
-          * Bugfix to avoid empty timestamp if data is empty
+          * Bugfix to avoid empty timestamp if data is smaler then the minimum expected length.
           */
-        if (line.count()> 6)
+        if (line.count() >= EBX_READ_LINE_MINIMUM_LEN)
         {
 
 
@@ -172,13 +160,13 @@ void EbxMonitorWorker::storeMeasurementData(QList<QString> lines)
                     listOfTimestamps.last()->setAlternativeId(listOfTimestamps.last()->getId());
                     matchingTableFromFInalId << newTimestamp;
                 }
-                /** Avoid long waiting if appication shall stop **/
-                if(stop)
-                {
-                    break;
-                }
             }
             listOfTimestamps << newTimestamp;
+        }
+        /** Avoid long waiting if appication shall stop **/
+        if(stop)
+        {
+            break;
         }
     }
 }

@@ -72,7 +72,7 @@ private slots:
 
     void on_btn_intercept_pressed();
 
-    void on_scr_delay_enqueuing_valueChanged(int value);
+    void on_ommitFrames_valueChanged(int arg1);
 
 private:
     Ui::EyeTrackerWindow *ui;

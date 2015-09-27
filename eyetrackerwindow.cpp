@@ -304,7 +304,7 @@ void EyeTrackerWindow::reportEnd(int count)
     }
 }
 
-void EyeTrackerWindow::on_scr_delay_enqueuing_valueChanged(int value)
+void EyeTrackerWindow::on_ommitFrames_valueChanged(int value)
 {
     emit setNewFrameNumberOffset(value);
 }

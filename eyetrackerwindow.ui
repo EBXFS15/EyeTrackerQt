@@ -98,8 +98,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>671</width>
-       <height>409</height>
+       <width>98</width>
+       <height>28</height>
       </rect>
      </property>
      <attribute name="label">
@@ -201,7 +201,7 @@
    <widget class="QPushButton" name="btn_disable_processing">
     <property name="geometry">
      <rect>
-      <x>660</x>
+      <x>510</x>
       <y>500</y>
       <width>99</width>
       <height>91</height>
@@ -230,13 +230,13 @@ Preview</string>
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>270</y>
+      <y>260</y>
       <width>321</width>
       <height>61</height>
      </rect>
     </property>
     <property name="text">
-     <string>Check next frame</string>
+     <string>Start searching...</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_fps_avg_txt">
@@ -295,13 +295,13 @@ Preview</string>
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>340</y>
-      <width>97</width>
+      <y>330</y>
+      <width>151</width>
       <height>22</height>
      </rect>
     </property>
     <property name="text">
-     <string>Continous</string>
+     <string>Search endlessly</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="chk_stop_interception">
@@ -309,12 +309,18 @@ Preview</string>
      <rect>
       <x>690</x>
       <y>360</y>
-      <width>241</width>
-      <height>31</height>
+      <width>91</width>
+      <height>41</height>
      </rect>
     </property>
+    <property name="minimumSize">
+     <size>
+      <width>0</width>
+      <height>2</height>
+     </size>
+    </property>
     <property name="text">
-     <string>Stop on number of Matches</string>
+     <string>Stop on</string>
     </property>
     <property name="checked">
      <bool>false</bool>
@@ -323,46 +329,63 @@ Preview</string>
    <widget class="QSpinBox" name="nbr_stop_interception">
     <property name="geometry">
      <rect>
-      <x>920</x>
-      <y>340</y>
+      <x>780</x>
+      <y>360</y>
       <width>61</width>
-      <height>61</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="value">
      <number>5</number>
     </property>
    </widget>
-   <widget class="QScrollBar" name="scr_delay_enqueuing">
-    <property name="geometry">
-     <rect>
-      <x>690</x>
-      <y>440</y>
-      <width>311</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="maximum">
-     <number>100</number>
-    </property>
-    <property name="value">
-     <number>0</number>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>690</x>
-      <y>410</y>
-      <width>291</width>
-      <height>17</height>
+      <x>720</x>
+      <y>430</y>
+      <width>61</width>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Number of frames to ommit for check:</string>
+     <string>Ommit</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>850</x>
+      <y>370</y>
+      <width>161</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>matching timestamps</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="ommitFrames">
+    <property name="geometry">
+     <rect>
+      <x>780</x>
+      <y>420</y>
+      <width>61</width>
+      <height>41</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>850</x>
+      <y>430</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>frames during search</string>
     </property>
    </widget>
   </widget>
