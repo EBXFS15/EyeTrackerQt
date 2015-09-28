@@ -23,7 +23,7 @@
 
 #define EBX_DEVICE_PATH "/dev/ebx_monitor"
 #define EBX_SETUP_SCRIPT_PATH "./setup.sh"
-#define EBX_SETUP_SCRIPT_MEASUREMENT_POINTS "150"
+#define EBX_SETUP_SCRIPT_MEASUREMENT_POINTS "125"
 #define EBX_CMD_START "start"
 #define EBX_READ_BUFFER (50 + 2)
 /**

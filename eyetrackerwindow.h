@@ -16,6 +16,7 @@
 #define INTERCEPTION_FRAME_COUNT 8
 #define STYLE_DISABLED "color: black;background-color: rgb(242, 241, 240);"
 #define STYLE_ENABLED "color: green;background-color: rgb(218, 218, 218);"
+#define SCALING_FACTOR_MATCHING_STATUS 30000
 
 namespace Ui {
 class EyeTrackerWindow;

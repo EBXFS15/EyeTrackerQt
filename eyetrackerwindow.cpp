@@ -325,8 +325,8 @@ void EyeTrackerWindow::matchStatus(qint64 ebxTStart, qint64 ebxTStop, qint64 cur
 
     ui->matchingStatus->scene()->clear();
 
-    qint64 ebx= (ebxTStop-ebxTStart)/10000;
-    qint64 criteria = (currentTimestamp - xorigin)/10000;
+    qint64 ebx= (ebxTStop-ebxTStart)/SCALING_FACTOR_MATCHING_STATUS;
+    qint64 criteria = (currentTimestamp - xorigin)/SCALING_FACTOR_MATCHING_STATUS;
 
     ui->matchingStatus->scene()->addRect(0,3,ebx,12,QPen(Qt::NoPen),ebxBrush );
     //ui->matchingStatus->scene()->addRect(criteria,14,10,14,QPen(Qt::NoPen), brush);
