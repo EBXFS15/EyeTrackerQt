@@ -139,11 +139,8 @@ void CaptureWorker::stop_streaming(void)
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if(-1 == xioctl(fd, VIDIOC_STREAMOFF, &type))
     {
-        emit message(QString("cannot stop video stream"));
-    }
-    else
-    {
-        emit message(QString("stream was stopped"));
+        v4l2_close(fd);
+        perror("cannot stop video stream");
     }
 }
 
@@ -305,7 +302,10 @@ void CaptureWorker::init_device(void)
 ///
 void CaptureWorker::close_device(void)
 {
-    v4l2_close(fd);
+    if(v4l2_close(fd))
+    {
+        perror(strerror(errno));
+    }
 }
 
 ///
@@ -459,6 +459,7 @@ void CaptureWorker::process()
         }
         QCoreApplication::processEvents();//to catch all incoming signals
     }
+
     stop_streaming();
     uninit_device();
     close_device();

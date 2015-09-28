@@ -7,6 +7,8 @@ EyeTrackerWorker::EyeTrackerWorker()
     close = 0;
     processing = 1;
     cascade = NULL;
+    storage = NULL;
+    faces = NULL;
     cascade = (CvHaarClassifierCascade*)cvLoad("/usr/local/bin/haarcascade_eye_tree_eyeglasses.xml");
     cvInitImageHeader(&grayImg,cvSize(320,240),IPL_DEPTH_8U, 1, IPL_ORIGIN_TL, 4 );
     /* Allocate space for RGBA data */
@@ -16,6 +18,8 @@ EyeTrackerWorker::EyeTrackerWorker()
 EyeTrackerWorker::~EyeTrackerWorker()
 {
     cvFree(&grayImg.imageData);
+    cvClearMemStorage( storage );
+    cvReleaseMemStorage(&storage);
 }
 
 void EyeTrackerWorker::onImageCaptured(IplImage image)
@@ -23,8 +27,7 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
     if((0 == close) && (cascade!=NULL) && (true == processing))
     {
         cvCvtColor(&image,&grayImg,CV_RGB2GRAY);
-        CvMemStorage *storage = cvCreateMemStorage(0);
-        CvSeq* faces;
+        storage = cvCreateMemStorage(0);
         CvSize size= cvSize(80,80);
         faces = cvHaarDetectObjects(&image, cascade,storage,1.1,3,CV_HAAR_FIND_BIGGEST_OBJECT,size);
         for(int i=0;i< faces->total; i++)
@@ -38,7 +41,6 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
            }
         }
     }
-
     if(close)
     {
         this->thread()->quit();

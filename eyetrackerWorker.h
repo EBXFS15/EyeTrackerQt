@@ -37,6 +37,8 @@ class EyeTrackerWorker: public QObject
     QAtomicInt close;
     QAtomicInt processing;
     CvHaarClassifierCascade* cascade;
+    CvMemStorage *storage;
+    CvSeq* faces;
     IplImage grayImg;
 
 };
