@@ -60,6 +60,7 @@ int CaptureWorker::getFrameV4l2(void)
             tv.tv_sec = 2;
             tv.tv_usec = 0;
             r = select(fd + 1, &fds, NULL, NULL, &tv);
+            QCoreApplication::processEvents();
         }
         while (((r == -1) && (errno = EINTR)) && (!stop));
 
@@ -136,8 +137,9 @@ int CaptureWorker::getFrameV4l2(void)
 ///
 void CaptureWorker::stop_streaming(void)
 {
+    /* Why do we set this again? */
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if(-1 == xioctl(fd, VIDIOC_STREAMOFF, &type))
+    if(-1 == v4l2_ioctl(fd, VIDIOC_STREAMOFF, &type))
     {
         v4l2_close(fd);
         perror("cannot stop video stream");
@@ -166,6 +168,8 @@ void CaptureWorker::uninit_device(void)
     {
         v4l2_munmap(buffers[i].start, buffers[i].length);
     }
+    /* Taken from v4l example... was missing here */
+    //free(buffers);
 }
 
 ///
@@ -281,7 +285,8 @@ void CaptureWorker::request_buffers(void)
             if(stop)
             {
                 break;
-            }
+            }            
+            QCoreApplication::processEvents();
     }
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 }
@@ -431,6 +436,7 @@ void CaptureWorker::disable_camera_autoexposure()
 ///
 CaptureWorker::~CaptureWorker()
 {
+
     // Nothing to clean up here, the required step are done before stopping thread
 }
 
@@ -464,6 +470,7 @@ void CaptureWorker::process()
     uninit_device();
     close_device();
     this->thread()->quit();
+    emit finished();
 }
 
 ///
@@ -488,11 +495,20 @@ void CaptureWorker::set_center(int x, int y)
     emit message (QString("Eye found at x=%1 y=%2").arg(x).arg(y));
 }
 
+
 ///
-/// \brief CaptureWorker::togglePreview
-/// Toggle preview, that is to say sending or not copy of frames to connected slots
+/// \brief CaptureWorker::setPreview
+/// Set preview, that is to say sending or not copy of frames to connected slots
 ///
-void CaptureWorker::toggle_preview()
+void CaptureWorker::set_preview(bool enable)
+
 {
-    preview = !preview;
+    if (enable)
+    {
+        preview = 1;
+    }
+    else
+    {
+        preview = 0;
+    }
 }

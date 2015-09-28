@@ -42,6 +42,8 @@ class CaptureWorker: public QObject
     ~CaptureWorker();
     void run();
 
+    int                             r, fd;
+
     int getFrameV4l2(void);
     void open_device(void);
     void close_device(void);
@@ -55,21 +57,23 @@ class CaptureWorker: public QObject
     void disable_camera_autoexposure(void);
     void set_fix_framerate(uint framerate);
 
-    void toggle_preview();
-    void stop_capturing();
+
+
 
     public slots:
     void process();
     void set_center(int x, int y);
+    void set_preview(bool enable);
+    void stop_capturing();
 
 
-    signals :
+    signals :    
     void finished();
     void imageCaptured(IplImage image);
     void qimageCaptured(QImage image);
     void message(QString msg);
     void gotFrame(qint64 id);
-
+    void cleanUpDone();
 
     private:
     struct video_capability         capability;
@@ -82,7 +86,6 @@ class CaptureWorker: public QObject
     struct v4l2_streamparm          sparams;
     fd_set                          fds;
     struct timeval                  tv;
-    int                             r, fd;
     unsigned int                    i, n_buffers;
     struct buffer                   *buffers;
     unsigned long                   sequence;

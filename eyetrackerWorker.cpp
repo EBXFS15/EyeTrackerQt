@@ -24,7 +24,7 @@ EyeTrackerWorker::~EyeTrackerWorker()
 
 void EyeTrackerWorker::onImageCaptured(IplImage image)
 {
-    if((0 == close) && (cascade!=NULL) && (true == processing))
+    if((!close) && (cascade!=NULL) && (true == processing))
     {
         cvCvtColor(&image,&grayImg,CV_RGB2GRAY);
         storage = cvCreateMemStorage(0);
@@ -44,7 +44,9 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
     if(close)
     {
         this->thread()->quit();
+        emit finished();
     }
+    QCoreApplication::processEvents();
 }
 
 void EyeTrackerWorker::abortThread()
@@ -52,7 +54,15 @@ void EyeTrackerWorker::abortThread()
     close = 1;
 }
 
-void EyeTrackerWorker::toggleProcessing()
+void EyeTrackerWorker::set_processing(bool enable)
 {
-    processing = !processing;
+    if(enable)
+    {
+        processing = 1;
+    }
+    else
+    {
+        processing = 0;
+    }
 }
+

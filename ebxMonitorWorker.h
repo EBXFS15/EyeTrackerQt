@@ -23,7 +23,7 @@
 
 #define EBX_DEVICE_PATH "/dev/ebx_monitor"
 #define EBX_SETUP_SCRIPT_PATH "/opt/ldd/setup.sh"
-#define EBX_SETUP_SCRIPT_MEASUREMENT_POINTS "90"
+#define EBX_SETUP_SCRIPT_MEASUREMENT_POINTS "500"
 #define EBX_CMD_START "start"
 #define EBX_READ_BUFFER (50 + 2)
 /**
@@ -34,7 +34,7 @@
 class EbxMonitorWorker : public QObject
 {
     Q_OBJECT    
-    QMutex accessData;
+    QMutex ebxDataMutex;
 
 private:
     QAtomicInt          stop;
@@ -44,13 +44,11 @@ private:
     QAtomicInt          nbrOfFramesToIgnore;
     QTimer              mytimer;
 
-
-
     /**
      * @brief By definition all newly created Timestamps shall be added to listOfTimestamps. All other lists just use pointers to these objects. During clean up these references get invalidated and all objects deleted.
      */
     QList<Timestamp *>  listOfTimestamps;
-    QList<Timestamp *>  matchingTableFromFInalId;
+    QList<Timestamp *>  matchingTableFromFinalId;
     QList<Timestamp *>  results;
 
     void storeMeasurementData(QList<QString> lines);
@@ -68,10 +66,13 @@ signals:
     void message(QString msg);
     void continueToFetchAndParse();
     void searchMatchingTimestamps(Timestamp * criteria);
-    void done();
+    void done(qint64 ebxTStart, qint64 ebxTStop, qint64 currentTimestamp , bool match);
+    void readingFromEbxMonitor();
+    void startReadingFromEbxMonitor();
 
 public slots:    
     void gotNewFrame(qint64 timestamp, int measurementPosition);
+    void gotNewFrame(qint64 frameId, qint64 registrationTime,  int position);
     void flushOldMeasurementData();    
     void sendCmdToEbxMonitor(QString cmd);
     void fetchAndParseMeasurementData();
