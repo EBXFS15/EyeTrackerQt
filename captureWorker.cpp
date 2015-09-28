@@ -53,6 +53,7 @@ int CaptureWorker::getFrameV4l2(void)
             tv.tv_sec = 2;
             tv.tv_usec = 0;
             r = select(fd + 1, &fds, NULL, NULL, &tv);
+            QCoreApplication::processEvents();
         }
         while (((r == -1) && (errno = EINTR)) && (!stop));
 
@@ -119,8 +120,9 @@ int CaptureWorker::getFrameV4l2(void)
 
 void CaptureWorker::stop_capturing(void)
 {
-    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if(-1 == xioctl(fd, VIDIOC_STREAMOFF, &type))
+    /* Why do we set this again? */
+    //type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    if(-1 == v4l2_ioctl(fd, VIDIOC_STREAMOFF, &type))
     {
         emit message(QString("cannot stop video stream"));
     }
@@ -144,6 +146,8 @@ void CaptureWorker::uninit_device(void)
     {
         v4l2_munmap(buffers[i].start, buffers[i].length);
     }
+    /* Taken from v4l example... was missing here */
+    free(buffers);
 }
 
 void CaptureWorker::init_device(void)
@@ -249,6 +253,7 @@ void CaptureWorker::init_device(void)
             {
                 break;
             }            
+            QCoreApplication::processEvents();
     }
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 }
@@ -367,8 +372,7 @@ CaptureWorker::~CaptureWorker()
       * It surprises me that we have nothing to cleanup here.
       * I think the buffer cleanup may be placed here.
       **/
-    //uninit_device();
-    //v4l2_close(fd);
+
 }
 
 void CaptureWorker::process()
@@ -395,7 +399,7 @@ void CaptureWorker::process()
     stop_capturing();
     uninit_device();
     close_device();
-    this->thread()->quit();
+    emit finished();
 }
 
 void CaptureWorker::stopCapturing()
@@ -410,7 +414,14 @@ void CaptureWorker::setCenter(int x, int y)
     emit message (QString("Eye found at x=%1 y=%2").arg(x).arg(y));
 }
 
-void CaptureWorker::togglePreview()
+void CaptureWorker::setPreview(bool enable)
 {
-    preview = !preview;
+    if (enable)
+    {
+        preview = 1;
+    }
+    else
+    {
+        preview = 0;
+    }
 }

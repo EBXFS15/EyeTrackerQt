@@ -21,14 +21,15 @@ class EyeTrackerWorker: public QObject
     EyeTrackerWorker();
     ~EyeTrackerWorker();
 
-    void toggleProcessing();
-    void abortThread();
+    void setProcessing(bool enable);
 
     public slots:
     void onImageCaptured(IplImage image);
+    void abortThread();
 
     signals :
     void finished();
+    void cleanUpDone();
     void message(QString msg);
     void eyeFound(int x, int y);
 

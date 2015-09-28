@@ -20,7 +20,7 @@ EyeTrackerWorker::~EyeTrackerWorker()
 
 void EyeTrackerWorker::onImageCaptured(IplImage image)
 {
-    if((0 == close) && (cascade!=NULL) && (true == processing))
+    if((!close) && (cascade!=NULL) && (true == processing))
     {
         cvCvtColor(&image,&grayImg,CV_RGB2GRAY);
         CvMemStorage *storage = cvCreateMemStorage(0);
@@ -38,10 +38,9 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
            }
         }
     }
-
     if(close)
     {
-        this->thread()->quit();
+        emit finished();
     }
 }
 
@@ -50,7 +49,15 @@ void EyeTrackerWorker::abortThread()
     close = 1;
 }
 
-void EyeTrackerWorker::toggleProcessing()
+void EyeTrackerWorker::setProcessing(bool enable)
 {
-    processing = !processing;
+    if(enable)
+    {
+        processing = 1;
+    }
+    else
+    {
+        processing = 0;
+    }
 }
+

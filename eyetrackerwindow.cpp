@@ -8,11 +8,15 @@ using namespace cv;
 EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::EyeTrackerWindow)
-{
-
+{   
     ui->setupUi(this);
+    searching = 0;
+
+    ui->matchingStatus->setScene(&scene);
 
     ui->label_message->setText(QString("Messages:\n"));    
+    on_btn_disable_processing_clicked();
+    on_btn_disable_preview_clicked();
 
     /** ebxMonitor setup
      * The ebxMonitor waits for a trigger to start parsing and matching timestamps.
@@ -21,18 +25,18 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
      * This signal is used to enable the intercept button on the gui.
      *
      * In addition to the parsing the ebxMonitorWorker collects the timestamps from the top level aplication.
-     */
+     */   
     ebxMonitorWorker = new EbxMonitorWorker();
-
+    protectMonitorTree.unlock();
 
     setupEbxMonitorTree();
-
+    ui->ommitFrames->setSingleStep(INTERCEPTION_FRAME_COUNT);
+    ui->ommitFrames->setMaximum(INTERCEPTION_FRAME_COUNT * 10);
 
 
     //register Iplimage to use slot/signal with Qt
     qRegisterMetaType<IplImage>("IplImage");
 
-    //connect(&ebxMonitorThread, SIGNAL(started()),ebxMonitorWorker,SLOT(searchMatch()));
 
     connect(this, SIGNAL(sampleEbxMonitor()), ebxMonitorWorker, SLOT(searchMatch()));
     connect(this, SIGNAL(setNewFrameNumberOffset(uint)), ebxMonitorWorker, SLOT(setNewFrameNumberOffset(uint)));
@@ -40,14 +44,21 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(ebxMonitorWorker, SIGNAL(reportInitialTimestamp(QString)), this, SLOT(reportInitialTimestamp(QString)));
     connect(ebxMonitorWorker, SIGNAL(reportMeasurementPoint(QString)), this, SLOT(reportMeasurementPoint(QString)));
     connect(ebxMonitorWorker, SIGNAL(reportEnd(int)), this, SLOT(reportEnd(int)));
-    connect(ebxMonitorWorker, SIGNAL(done()),this, SLOT(enableInterception()));
-    connect(ebxMonitorWorker, SIGNAL(finished()),this, SLOT(deleteLater()));
+
+    connect(ebxMonitorWorker, SIGNAL(done(qint64,qint64,qint64,bool)),this, SLOT(matchStatus(qint64,qint64,qint64,bool)));
+
     connect(ebxMonitorWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
 
+    connect(ebxMonitorWorker, SIGNAL(startReadingFromEbxMonitor()),this,SLOT(progressBarStart()));
+//    connect(ebxMonitorWorker, SIGNAL(readingFromEbxMonitor()),this,SLOT(progressBarIncrement()));
+
     connect(this, SIGNAL(gotNewFrame(qint64,int)), ebxMonitorWorker,SLOT(gotNewFrame(qint64,int)));       
+    connect(this, SIGNAL(gotNewFrame(qint64,qint64, int)), ebxMonitorWorker,SLOT(gotNewFrame(qint64,qint64,int)));
 
     /** Signals to stop the workers. The stop slot may be only hit when thread.wait() is called.*/
     connect(this, SIGNAL(stopEbxMonitor()),ebxMonitorWorker, SLOT(stopMonitoring()));
+    connect(this, SIGNAL(stopEbxCaptureWorker()),&captureWorker, SLOT(stopCapturing()));
+    connect(this, SIGNAL(stopEbxEyeTracker()), &eyetrackerWorker, SLOT(abortThread()));
 
     /** This is absolutely needed. Informs the Thread that the work is done. **/
     connect(&captureWorker, SIGNAL(finished()), &captureThread, SLOT(quit()));
@@ -57,16 +68,6 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(&eyetrackerWorker, SIGNAL(eyeFound(int,int)), &captureWorker, SLOT(setCenter(int,int)));
     connect(&captureWorker, SIGNAL(qimageCaptured(QImage)), this, SLOT(onCaptured(QImage)));
 
-    /**
-     * I don't know why we should delete something that is handled by QT anyway
-     * Main reason behind is that if I understand it correctly these objects are part of the parent object variables.
-     * The delete later concept is found in examples where the thread is created dynamically.
-     * I think this is not needed.
-     */
-    //connect(&captureWorker, SIGNAL(finished()), &captureWorker, SLOT(deleteLater()));
-    //connect(&captureThread, SIGNAL(finished()), &captureThread, SLOT(deleteLater()));
-    //connect(&eyetrackerWorker, SIGNAL(finished()), &eyetrackerWorker, SLOT(deleteLater()));
-    //connect(&eyetrackerThread, SIGNAL(finished()), &eyetrackerThread, SLOT(deleteLater()));
 
     connect(&captureWorker, SIGNAL(imageCaptured(IplImage)), &eyetrackerWorker, SLOT(onImageCaptured(IplImage)));
 
@@ -76,6 +77,8 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
      */
     connect(&captureWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
     connect(&eyetrackerWorker, SIGNAL(message(QString)), this, SLOT(onTrackerMessage(QString)));
+
+
 
     connect(ui->quitBtn,SIGNAL(pressed()),this,SLOT(onClosed()));
     connect(ui->btn_disable_preview,SIGNAL(clicked()),this,SLOT(togglePreview()));
@@ -117,10 +120,7 @@ void EyeTrackerWindow::onCaptured(QImage captFrame)
 
 void EyeTrackerWindow::onCaptureMessage(QString msg)
 {   
-//    if (!msg.endsWith("\n"))
-//    {
-//        msg.append("\n");
-//    }
+
     ui->label_message->append(msg);
 
 }
@@ -163,22 +163,29 @@ void EyeTrackerWindow::onClosed()
     // sending the last onImageCaptured signal. Once the eyeTrackerThread
     // is lost, the signal/slot connection is lost between
     // capture and eyetracker threads and nothing happens.
-    eyetrackerWorker.abortThread();
-    eyetrackerThread.wait();
-    captureWorker.stopCapturing();
+    //eyetrackerWorker.abortThread();
+    emit stopEbxEyeTracker();
+    emit stopEbxCaptureWorker();
+    captureThread.exit();
+    eyetrackerThread.exit();
+
     captureThread.wait();
 
+    eyetrackerThread.wait();
+
     this->close();
+
 }
+
 
 void EyeTrackerWindow::togglePreview()
 {
-    captureWorker.togglePreview();
+
 }
 
 void EyeTrackerWindow::toggleProcessing()
 {
-    eyetrackerWorker.toggleProcessing();
+
 }
 
 void EyeTrackerWindow::onGotFrame(qint64 id)
@@ -187,7 +194,7 @@ void EyeTrackerWindow::onGotFrame(qint64 id)
     static double avgFps = -1;
     static qint64 rxTimeStamp;
     static qint64 previousTimestamp;
-    //static int count = INTERCEPTION_FRAME_COUNT;
+    static int count = INTERCEPTION_FRAME_COUNT;
     struct timespec gotTime;
     double fps = 0;
     double latency = 0;
@@ -213,10 +220,11 @@ void EyeTrackerWindow::onGotFrame(qint64 id)
     }
     previousTimestamp = rxTimeStamp;
 
-    //if ((count++) > INTERCEPTION_FRAME_COUNT){
-        emit gotNewFrame(id, 255);
-    //    count = 0;
-    //}
+    if ((count++) > INTERCEPTION_FRAME_COUNT){
+        emit gotNewFrame(id, rxTimeStamp, 255);
+        count = 0;
+        progressBarIncrement();
+    }
 }
 
 
@@ -237,34 +245,32 @@ void EyeTrackerWindow::on_btn_intercept_pressed()
 {
     ui->btn_intercept->setEnabled(false);
     cleanEbxMonitorTree();
+    setupEbxMonitorTree();
+    progressBarStart();
     emit sampleEbxMonitor();
 }
 
 void EyeTrackerWindow::cleanEbxMonitorTree()
-{
+{    
+    protectMonitorTree.lock();
     if(ebxMonitorModel != 0)
     {
         delete ebxMonitorModel;
         ebxMonitorModel = 0;
     }
+
     while(!createdStandardItems.isEmpty())
     {
-        QStandardItem * first  = createdStandardItems.at(0);
-        if((first != 0) && (first->rowCount() > 0))
-        {
-            first->removeRows(0,first->rowCount());
-        }
-        if((first != 0) && (first->columnCount() > 0))
-        {
-            first->removeRows(0,first->columnCount());
-        }
         createdStandardItems.removeAt(0);
     }
+    protectMonitorTree.unlock();
 }
 
 void EyeTrackerWindow::setupEbxMonitorTree()
 {
-    ebxMonitorModel = new QStandardItemModel(this);
+    protectMonitorTree.lock();
+        ebxMonitorModel = new QStandardItemModel(this);
+    protectMonitorTree.unlock();
     ui->ebxMonitorTree->setModel(ebxMonitorModel);
     ui->ebxMonitorTree->show();
 }
@@ -289,7 +295,9 @@ void EyeTrackerWindow::reportMeasurementPoint(QString csvData)
         createdStandardItems << tmpItem;
         rowItems << tmpItem;
     }
+    protectMonitorTree.lock();
     ebxMonitorModel->invisibleRootItem()->appendRow(rowItems);
+    protectMonitorTree.unlock();
 }
 
 void EyeTrackerWindow::reportEnd(int count)
@@ -308,3 +316,85 @@ void EyeTrackerWindow::on_ommitFrames_valueChanged(int value)
 {
     emit setNewFrameNumberOffset(value);
 }
+
+
+
+
+void EyeTrackerWindow::matchStatus(qint64 ebxTStart, qint64 ebxTStop, qint64 currentTimestamp , bool match)
+{
+    static qint64 xorigin = 0;
+    QBrush ebxBrush = QBrush(QColor("yellow"));
+    QBrush brush = QBrush(QColor("red"));
+    if(match)
+    {
+        brush = QBrush(QColor("green"));
+    }
+
+    if (xorigin < ebxTStart)
+    {
+        xorigin = ebxTStart -10;
+    }
+
+    ui->matchingStatus->scene()->clear();
+
+    qint64 ebx= (ebxTStop-ebxTStart)/10000;
+    qint64 criteria = (currentTimestamp - xorigin)/10000;
+
+    ui->matchingStatus->scene()->addRect(0,3,ebx,12,QPen(Qt::NoPen),ebxBrush );
+    //ui->matchingStatus->scene()->addRect(criteria,14,10,14,QPen(Qt::NoPen), brush);
+    ui->matchingStatus->scene()->addEllipse(criteria,16,8,8,QPen(Qt::NoPen), brush);
+
+    ui->matchingStatus->repaint();
+    this->enableInterception();
+
+}
+
+void EyeTrackerWindow::on_btn_disable_preview_clicked()
+{
+    captureWorker.setPreview(toggleButton(ui->btn_disable_preview,
+                                          "Enable\npreview",
+                                          "Disable\npreview"));
+}
+void EyeTrackerWindow::on_btn_disable_processing_clicked()
+{
+    eyetrackerWorker.setProcessing(toggleButton(ui->btn_disable_processing,
+                                                "Enable\neye tracking",
+                                                "Disable\neye tracking"));
+}
+bool EyeTrackerWindow::toggleButton(QPushButton * button, QString enabled, QString disabled)
+{
+    if(button->isFlat())
+    {
+        button->setFlat(false);
+        button->setText(enabled);
+        button->setStyleSheet(STYLE_DISABLED);
+        return false;
+    }
+    else
+    {
+        button->setFlat(true);
+        button->setText(disabled);
+        button->setStyleSheet(STYLE_ENABLED);
+        button->setAutoFillBackground(true);
+        return true;
+    }
+}
+
+void EyeTrackerWindow::progressBarStart()
+{
+    ui->pbar_reading->setValue(0);
+}
+
+void EyeTrackerWindow::progressBarIncrement()
+{
+    if((ui->pbar_reading->value() +1) > ui->pbar_reading->maximum())
+    {
+        ui->pbar_reading->setValue(0);
+    }
+    else
+    {
+        ui->pbar_reading->setValue(ui->pbar_reading->value()+1);
+    }
+
+}
+
