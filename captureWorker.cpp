@@ -26,6 +26,9 @@ static std::string fcc2s(unsigned int val)
     return s;
 }
 
+///
+/// \brief CaptureWorker::CaptureWorker
+///
 CaptureWorker::CaptureWorker()
 {
     stop = 0;
@@ -42,7 +45,10 @@ CaptureWorker::CaptureWorker()
     memset (&sparams,0,sizeof(struct v4l2_streamparm));
 }
 
-
+///
+/// \brief CaptureWorker::getFrameV4l2
+/// \return 1 if successful, any other number otherwise
+///
 int CaptureWorker::getFrameV4l2(void)
 {
         do
@@ -117,7 +123,11 @@ int CaptureWorker::getFrameV4l2(void)
         return 1;
 }
 
-void CaptureWorker::stop_capturing(void)
+///
+/// \brief CaptureWorker::stop_streaming
+/// Stops streaming video
+///
+void CaptureWorker::stop_streaming(void)
 {
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if(-1 == xioctl(fd, VIDIOC_STREAMOFF, &type))
@@ -130,7 +140,11 @@ void CaptureWorker::stop_capturing(void)
     }
 }
 
-void CaptureWorker::start_capturing(void)
+///
+/// \brief CaptureWorker::start_streaming
+/// Starts streaming video
+///
+void CaptureWorker::start_streaming(void)
 {
     if(-1 == xioctl(fd, VIDIOC_STREAMON, &type))
     {
@@ -138,6 +152,10 @@ void CaptureWorker::start_capturing(void)
     }
 }
 
+///
+/// \brief CaptureWorker::uninit_device
+/// Unmap all memory mapped video buffers
+///
 void CaptureWorker::uninit_device(void)
 {
     for (i = 0; i < n_buffers; ++i)
@@ -146,9 +164,12 @@ void CaptureWorker::uninit_device(void)
     }
 }
 
-void CaptureWorker::init_device(void)
+///
+/// \brief CaptureWorker::negociate_format
+/// Negociates pixel formats and print all possible framerates for this format
+///
+void CaptureWorker::negociate_format(void)
 {
-
     CLEAR(fmt);
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
@@ -158,7 +179,7 @@ void CaptureWorker::init_device(void)
         exit(EXIT_FAILURE);
     }
 
-    //list all possible fps for default format
+    //list all possible fps for current format
     struct v4l2_frmivalenum frmival;
     memset(&frmival,0,sizeof(frmival));
     frmival.pixel_format = fmt.fmt.pix_mp.pixelformat;
@@ -186,6 +207,7 @@ void CaptureWorker::init_device(void)
     fmt.fmt.pix.width       = DEF_IMG_WIDTH;
     fmt.fmt.pix.height      = DEF_IMG_HEIGHT;
     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
+    // if not supported by the device, libv4l2 will convert the fame data in RGB colorspace
     fmt.fmt.pix.field       = V4L2_FIELD_ANY;
     if(-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
     {
@@ -200,13 +222,21 @@ void CaptureWorker::init_device(void)
             exit(EXIT_FAILURE);
         }
 
-        emit message(QString("New Format:\t %1; %2x%3")
+   emit message(QString("New Format:\t %1; %2x%3")
                      .arg(fcc2s(fmt.fmt.pix.pixelformat).c_str())
                      .arg(fmt.fmt.pix_mp.width)
                      .arg(fmt.fmt.pix_mp.height));
+}
 
+///
+/// \brief CaptureWorker::request_buffers
+/// Requests memory mapped buffers
+///
+void CaptureWorker::request_buffers(void)
+{
+    // request 4 memory mapped buffers for video capture
     CLEAR(req);
-    req.count = 2;
+    req.count = 4;
     req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     req.memory = V4L2_MEMORY_MMAP;
     xioctl(fd, VIDIOC_REQBUFS, &req);
@@ -228,7 +258,6 @@ void CaptureWorker::init_device(void)
                           fd, buf.m.offset);
 
             if (MAP_FAILED == buffers[n_buffers].start) {
-                    emit message(QString("Memory mapping error"));
                     perror("mmap error");
                     exit(EXIT_FAILURE);
             }
@@ -248,22 +277,39 @@ void CaptureWorker::init_device(void)
             if(stop)
             {
                 break;
-            }            
+            }
     }
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 }
 
+///
+/// \brief CaptureWorker::init_device
+/// Initialize video capture device
+///
+void CaptureWorker::init_device(void)
+{
+    negociate_format();
+    request_buffers();
+}
+
+///
+/// \brief CaptureWorker::close_device
+/// Close video capture device
+///
 void CaptureWorker::close_device(void)
 {
     v4l2_close(fd);
 }
 
+///
+/// \brief CaptureWorker::open_device
+/// Open video capture device
+///
 void CaptureWorker::open_device(void)
 {
     fd = v4l2_open(DEV_NAME, O_RDWR | O_NONBLOCK, 0);
     if (fd < 0)
     {
-        emit message(QString("Cannot open video capture device"));
         perror("Cannot open video capture device");
         exit(EXIT_FAILURE);
     }
@@ -271,7 +317,6 @@ void CaptureWorker::open_device(void)
     CLEAR (cap);
     if (-1 == xioctl (fd, VIDIOC_QUERYCAP, &cap))
     {
-        emit message(QString("Cannot query capabilities of device"));
         perror("Cannot query capabilities of device");
         exit(EXIT_FAILURE);
     }
@@ -288,6 +333,11 @@ void CaptureWorker::open_device(void)
     }
 }
 
+///
+/// \brief CaptureWorker::set_fix_framerate
+/// \param framerate
+/// Set framerate to the given value, send message to gui if not possible
+///
 void CaptureWorker::set_fix_framerate(uint framerate)
 {
 
@@ -300,7 +350,7 @@ void CaptureWorker::set_fix_framerate(uint framerate)
     }
     if (!sparams.parm.capture.capability & V4L2_CAP_TIMEPERFRAME)
     {
-       perror("Cannot change time per frame (FPS)");
+       perror("Device cannot change time per frame (FPS)");
     }
     else
     {
@@ -329,6 +379,10 @@ void CaptureWorker::set_fix_framerate(uint framerate)
     }
 }
 
+///
+/// \brief CaptureWorker::print_video_formats
+/// Send each available video formats
+///
 void CaptureWorker::print_video_formats()
 {
     struct v4l2_fmtdesc fmtdesc;
@@ -345,6 +399,10 @@ void CaptureWorker::print_video_formats()
     emit message(msg);
 }
 
+///
+/// \brief CaptureWorker::disable_camera_autoexposure
+/// Disable auto exposure, send message if not successful
+///
 void CaptureWorker::disable_camera_autoexposure()
 {
     struct v4l2_control ctl;
@@ -361,22 +419,24 @@ void CaptureWorker::disable_camera_autoexposure()
     }
 }
 
+///
+/// \brief CaptureWorker::~CaptureWorker
+///
 CaptureWorker::~CaptureWorker()
 {
-    /**
-      * It surprises me that we have nothing to cleanup here.
-      * I think the buffer cleanup may be placed here.
-      **/
-    //uninit_device();
-    //v4l2_close(fd);
+    // Nothing to clean up here, the required step are done before stopping thread
 }
 
+///
+/// \brief CaptureWorker::process
+/// Running loop to get frames and send them to connected slots
+///
 void CaptureWorker::process()
 {
     open_device();
     init_device();
     set_fix_framerate(15);
-    start_capturing();
+    start_streaming();
     print_video_formats();
     disable_camera_autoexposure();
 
@@ -390,27 +450,41 @@ void CaptureWorker::process()
             captFrame = QImage((const uchar*)frame.imageData, frame.width, frame.height, QImage::Format_RGB888);
             emit qimageCaptured(captFrame);
         }
-        QCoreApplication::processEvents();
+        QCoreApplication::processEvents();//to catch all incoming signals
     }
-    stop_capturing();
+    stop_streaming();
     uninit_device();
     close_device();
     this->thread()->quit();
 }
 
-void CaptureWorker::stopCapturing()
+///
+/// \brief CaptureWorker::stopCapturing
+/// Tell thread to stop
+///
+void CaptureWorker::stop_capturing()
 {
     stop = 1;
 }
 
-void CaptureWorker::setCenter(int x, int y)
+///
+/// \brief CaptureWorker::setCenter
+/// \param x
+/// \param y
+/// Change eye center
+///
+void CaptureWorker::set_center(int x, int y)
 {
     eyeCenter.x=x;
     eyeCenter.y=y;
     emit message (QString("Eye found at x=%1 y=%2").arg(x).arg(y));
 }
 
-void CaptureWorker::togglePreview()
+///
+/// \brief CaptureWorker::togglePreview
+/// Toggle preview, that is to say sending or not copy of frames to connected slots
+///
+void CaptureWorker::toggle_preview()
 {
     preview = !preview;
 }

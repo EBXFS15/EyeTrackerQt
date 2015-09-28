@@ -54,7 +54,7 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(&eyetrackerWorker, SIGNAL(finished()), &eyetrackerThread, SLOT(quit()));
 
     connect(&captureThread, SIGNAL(started()), &captureWorker, SLOT(process()));
-    connect(&eyetrackerWorker, SIGNAL(eyeFound(int,int)), &captureWorker, SLOT(setCenter(int,int)));
+    connect(&eyetrackerWorker, SIGNAL(eyeFound(int,int)), &captureWorker, SLOT(set_center(int,int)));
     connect(&captureWorker, SIGNAL(qimageCaptured(QImage)), this, SLOT(onCaptured(QImage)));
 
     /**
@@ -165,7 +165,7 @@ void EyeTrackerWindow::onClosed()
     // capture and eyetracker threads and nothing happens.
     eyetrackerWorker.abortThread();
     eyetrackerThread.wait();
-    captureWorker.stopCapturing();
+    captureWorker.stop_capturing();
     captureThread.wait();
 
     this->close();
@@ -173,7 +173,7 @@ void EyeTrackerWindow::onClosed()
 
 void EyeTrackerWindow::togglePreview()
 {
-    captureWorker.togglePreview();
+    captureWorker.toggle_preview();
 }
 
 void EyeTrackerWindow::toggleProcessing()

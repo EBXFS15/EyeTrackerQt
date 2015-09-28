@@ -45,20 +45,22 @@ class CaptureWorker: public QObject
     int getFrameV4l2(void);
     void open_device(void);
     void close_device(void);
+    void negociate_format(void);
+    void request_buffers(void);
     void init_device(void);
     void uninit_device(void);
-    void start_capturing(void);
-    void stop_capturing(void);
+    void start_streaming(void);
+    void stop_streaming(void);
     void print_video_formats(void);
     void disable_camera_autoexposure(void);
     void set_fix_framerate(uint framerate);
 
-    void togglePreview();
-    void stopCapturing();
+    void toggle_preview();
+    void stop_capturing();
 
     public slots:
     void process();
-    void setCenter(int x, int y);
+    void set_center(int x, int y);
 
 
     signals :
