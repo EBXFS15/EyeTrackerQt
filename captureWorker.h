@@ -55,6 +55,7 @@ class CaptureWorker: public QObject
     void stop_streaming(void);
     void print_video_formats(void);
     void disable_camera_autoexposure(void);
+    void set_camera_exposure(long value);
     void set_fix_framerate(uint framerate);
 
 

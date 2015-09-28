@@ -431,6 +431,22 @@ void CaptureWorker::disable_camera_autoexposure()
     }
 }
 
+void CaptureWorker::set_camera_exposure(long value)
+{
+    struct v4l2_control ctl;
+    ctl.id = V4L2_CID_EXPOSURE_ABSOLUTE;
+    ctl.value = value;
+    if(v4l2_ioctl(fd,VIDIOC_S_CTRL,&ctl))
+    {
+        emit message(QString("Exposure set to ")+QString::number(value));
+    }
+    else
+    {
+        emit message(QString("Cannot set exposure to ")+QString::number(value));
+        emit message(QString(errno));
+    }
+}
+
 ///
 /// \brief CaptureWorker::~CaptureWorker
 ///
@@ -448,10 +464,11 @@ void CaptureWorker::process()
 {
     open_device();
     init_device();
-    set_fix_framerate(15);
+    //set_fix_framerate(15);
     start_streaming();
     print_video_formats();
     disable_camera_autoexposure();
+    set_camera_exposure(150);
 
     while(!stop)
     {
