@@ -99,16 +99,16 @@ QString Timestamp::toString(Timestamp * previousTimestamp)
 
     tempString.append(QString("%1(%2),").arg(this->id).arg(this->alternativeId));
     tempString.append(QString("%1,").arg(this->position));
-    tempString.append(QString("%1us,").arg(this->registrationTime));
-    tempString.append(QString("%1us,").arg(this->getDelayInMs()));
+    tempString.append(QString("%1ms,").arg(this->registrationTime));
+    tempString.append(QString("%1ms,").arg(this->getDelayInMs()));
 
     if(0 != previousTimestamp)
     {
-        tempString.append(QString("%1us").arg(this->getDelayInMs(previousTimestamp)));
+        tempString.append(QString("%1ms").arg(this->getDelayInMs(previousTimestamp)));
     }
     else
     {
-        tempString.append(QString("%1us").arg(this->getDelayInMs()));
+        tempString.append(QString("%1ms").arg(this->getDelayInMs()));
     }
 
     return tempString;

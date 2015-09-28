@@ -9,7 +9,7 @@ EyeTrackerWorker::EyeTrackerWorker()
     cascade = NULL;
     storage = NULL;
     faces = NULL;
-    cascade = (CvHaarClassifierCascade*)cvLoad("/usr/local/bin/haarcascade_eye_tree_eyeglasses.xml");
+    cascade = (CvHaarClassifierCascade*)cvLoad("./haarcascade_eye_tree_eyeglasses.xml");
     cvInitImageHeader(&grayImg,cvSize(320,240),IPL_DEPTH_8U, 1, IPL_ORIGIN_TL, 4 );
     /* Allocate space for RGBA data */
     grayImg.imageData = (char *)cvAlloc(grayImg.imageSize);
