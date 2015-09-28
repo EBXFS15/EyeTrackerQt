@@ -121,7 +121,7 @@ int CaptureWorker::getFrameV4l2(void)
 void CaptureWorker::stop_capturing(void)
 {
     /* Why do we set this again? */
-    //type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if(-1 == v4l2_ioctl(fd, VIDIOC_STREAMOFF, &type))
     {
         emit message(QString("cannot stop video stream"));
@@ -147,7 +147,7 @@ void CaptureWorker::uninit_device(void)
         v4l2_munmap(buffers[i].start, buffers[i].length);
     }
     /* Taken from v4l example... was missing here */
-    free(buffers);
+    //free(buffers);
 }
 
 void CaptureWorker::init_device(void)
@@ -399,6 +399,7 @@ void CaptureWorker::process()
     stop_capturing();
     uninit_device();
     close_device();
+    this->thread()->quit();
     emit finished();
 }
 

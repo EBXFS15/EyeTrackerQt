@@ -55,14 +55,11 @@ class CaptureWorker: public QObject
     void disable_camera_autoexposure(void);
     void set_fix_framerate(uint framerate);
 
-    void setPreview(bool enable);
-
-
     public slots:
     void process();
     void setCenter(int x, int y);
     void stopCapturing();
-
+    void setPreview(bool enable);
 
     signals :    
     void finished();
@@ -70,7 +67,6 @@ class CaptureWorker: public QObject
     void qimageCaptured(QImage image);
     void message(QString msg);
     void gotFrame(qint64 id);
-
     void cleanUpDone();
 
     private:

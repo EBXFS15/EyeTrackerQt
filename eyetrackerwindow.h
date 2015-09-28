@@ -70,8 +70,6 @@ public slots:
     void onCaptureMessage(QString msg);
     void onTrackerMessage(QString msg);    
     void onGotFrame(qint64 id);
-    void togglePreview();
-    void toggleProcessing();
     void enableInterception();
     void reportInitialTimestamp(QString csvData);
     void reportMeasurementPoint(QString csvData);
@@ -82,15 +80,9 @@ public slots:
 
 
 private slots:
-
-
     void on_btn_intercept_pressed();
-
     void on_ommitFrames_valueChanged(int arg1);
-
     void on_btn_disable_processing_clicked();
-
-
     void on_btn_disable_preview_clicked();
 
 private:

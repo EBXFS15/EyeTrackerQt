@@ -141,12 +141,12 @@ void EyeTrackerWindow::onClosed()
      * Avoid delay by stopping preview
      * Would be nicer with signals but ok...
      * */
-    togglePreview();
+    emit captureWorker.setPreview(false);
     /**
      * Avoid delay by stopping eyetracker
      * Would be nicer with signals but ok...
      * */
-    toggleProcessing();
+    emit eyetrackerWorker.setProcessing(false);
 
     /**
      * Cleanup EbxMonitorWorker
@@ -163,29 +163,14 @@ void EyeTrackerWindow::onClosed()
     // sending the last onImageCaptured signal. Once the eyeTrackerThread
     // is lost, the signal/slot connection is lost between
     // capture and eyetracker threads and nothing happens.
-    //eyetrackerWorker.abortThread();
-    emit stopEbxEyeTracker();
-    emit stopEbxCaptureWorker();
-    captureThread.exit();
-    eyetrackerThread.exit();
 
-    captureThread.wait();
-
+    emit eyetrackerWorker.abortThread();
     eyetrackerThread.wait();
 
+    emit captureWorker.stopCapturing();
+    captureThread.wait();
+
     this->close();
-
-}
-
-
-void EyeTrackerWindow::togglePreview()
-{
-
-}
-
-void EyeTrackerWindow::toggleProcessing()
-{
-
 }
 
 void EyeTrackerWindow::onGotFrame(qint64 id)

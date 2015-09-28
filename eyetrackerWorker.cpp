@@ -40,8 +40,10 @@ void EyeTrackerWorker::onImageCaptured(IplImage image)
     }
     if(close)
     {
+        this->thread()->quit();
         emit finished();
     }
+    QCoreApplication::processEvents();
 }
 
 void EyeTrackerWorker::abortThread()
