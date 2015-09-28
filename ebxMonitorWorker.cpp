@@ -16,9 +16,8 @@ EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
     }
 
     triggerActive = 0;
-    nbrOfFramesToIgnoreDefault = 0;
-    //connect(this,SIGNAL(searchMatchingTimestamps(Timestamp)), this, SLOT(findMatchingTimestamps(Timestamp)));       
-    //connect(&mytimer,SIGNAL(timeout()),this,SLOT(activateTrigger()));
+    nbrOfFramesToIgnoreDefault = 0;    
+    connect(&watchdog,SIGNAL(timeout()),this,SLOT(activateTrigger()));
     /**
       * Initial value for the mutex
       */
@@ -27,18 +26,19 @@ EbxMonitorWorker::EbxMonitorWorker(QObject *parent) : QObject(parent)
 
 void EbxMonitorWorker::searchMatch(){
     if(!stop)
-    {
-    //int tmpDelay = delayAfterEbxMonitorReset;
+    {    
         triggerActive = 0;
         cleanupMemory();
         flushOldMeasurementData();
         activateTrigger();
         fetchAndParseMeasurementData();
+        watchdog.start(1500);
     }
 }
 
 void EbxMonitorWorker::stopMonitoring()
 {
+    watchdog.stop();
     stop = 1;
     triggerActive = 1;
     nbrOfFramesToIgnore = 0;
@@ -185,7 +185,10 @@ void EbxMonitorWorker::storeMeasurementData(QList<QString> lines)
 
 void EbxMonitorWorker::activateTrigger()
 {
-    mytimer.stop();
+    if(watchdog.isActive())
+    {
+        watchdog.stop();
+    }
     triggerActive = 1;
     nbrOfFramesToIgnore  = nbrOfFramesToIgnoreDefault;
 }
@@ -280,6 +283,10 @@ void EbxMonitorWorker::findMatchingTimestamps(Timestamp * criteria)
                           false);
             }
             delete criteria;
+            if(watchdog.isActive())
+            {
+                watchdog.stop();
+            }
         }
     ebxDataMutex.unlock();
 }

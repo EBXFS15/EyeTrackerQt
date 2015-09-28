@@ -42,7 +42,7 @@ private:
     QAtomicInt          enqueNewFrames;    
     QAtomicInt          nbrOfFramesToIgnoreDefault;
     QAtomicInt          nbrOfFramesToIgnore;
-    QTimer              mytimer;
+    QTimer              watchdog;
 
     /**
      * @brief By definition all newly created Timestamps shall be added to listOfTimestamps. All other lists just use pointers to these objects. During clean up these references get invalidated and all objects deleted.

@@ -21,6 +21,7 @@ namespace Ui {
 class EyeTrackerWindow;
 }
 
+
 class EyeTrackerWindow : public QMainWindow
 {
     Q_OBJECT
@@ -28,6 +29,8 @@ class EyeTrackerWindow : public QMainWindow
 public:
     explicit EyeTrackerWindow(QWidget *parent = 0);
     ~EyeTrackerWindow();
+
+
     void updateImage(QPixmap pixmap);
     void getImage();    
     void cleanEbxMonitorTree();
@@ -49,8 +52,6 @@ public:
     QMutex protectMonitorTree;
     QStandardItemModel *ebxMonitorModel;
     QList<QStandardItem * > createdStandardItems;
-
-
 
 
 signals:

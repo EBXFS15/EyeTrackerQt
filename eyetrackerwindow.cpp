@@ -13,10 +13,7 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     searching = 0;
 
     ui->matchingStatus->setScene(&scene);
-
-    ui->label_message->setText(QString("Messages:\n"));    
-    on_btn_disable_processing_clicked();
-    on_btn_disable_preview_clicked();
+    ui->label_message->setText(QString("Messages:\n"));
 
     /** ebxMonitor setup
      * The ebxMonitor waits for a trigger to start parsing and matching timestamps.
@@ -50,7 +47,6 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     connect(ebxMonitorWorker, SIGNAL(message(QString)), this, SLOT(onCaptureMessage(QString)));
 
     connect(ebxMonitorWorker, SIGNAL(startReadingFromEbxMonitor()),this,SLOT(progressBarStart()));
-//    connect(ebxMonitorWorker, SIGNAL(readingFromEbxMonitor()),this,SLOT(progressBarIncrement()));
 
     connect(this, SIGNAL(gotNewFrame(qint64,int)), ebxMonitorWorker,SLOT(gotNewFrame(qint64,int)));       
     connect(this, SIGNAL(gotNewFrame(qint64,qint64, int)), ebxMonitorWorker,SLOT(gotNewFrame(qint64,qint64,int)));
@@ -89,12 +85,20 @@ EyeTrackerWindow::EyeTrackerWindow(QWidget *parent) :
     eyetrackerWorker.moveToThread(&eyetrackerThread);
     ebxMonitorWorker->moveToThread(&ebxMonitorThread);
 
-
     captureThread.start();
     eyetrackerThread.start();
     ebxMonitorThread.start();
 
+    ui->btn_disable_preview->setFlat(true);
+    ui->btn_disable_preview->setStyleSheet(STYLE_ENABLED);
+    ui->btn_disable_preview->setAutoFillBackground(true);
+    ui->btn_disable_preview->setFlat(true);
 
+
+
+    ui->btn_disable_processing->setStyleSheet(STYLE_ENABLED);
+    ui->btn_disable_processing->setAutoFillBackground(true);
+    ui->btn_disable_processing->setFlat(true);
 }
 
 EyeTrackerWindow::~EyeTrackerWindow()
@@ -162,8 +166,9 @@ void EyeTrackerWindow::onClosed()
     // is lost, the signal/slot connection is lost between
     // capture and eyetracker threads and nothing happens.
 
-    emit eyetrackerWorker.abortThread();
+    eyetrackerWorker.abortThread();
     eyetrackerThread.wait();
+
     captureWorker.stop_capturing();
     captureThread.wait();
 
@@ -344,9 +349,18 @@ void EyeTrackerWindow::on_btn_disable_processing_clicked()
                                                 "Enable\neye tracking",
                                                 "Disable\neye tracking"));
 }
+
+///
+/// \brief EyeTrackerWindow::toggleButton, Toggles the button if mode is DontCare
+/// \param button
+/// \param enabled
+/// \param disabled
+/// \param mode
+/// \return
+///
 bool EyeTrackerWindow::toggleButton(QPushButton * button, QString enabled, QString disabled)
-{
-    if(button->isFlat())
+{     
+    if(button->text().startsWith(disabled))
     {
         button->setFlat(false);
         button->setText(enabled);
