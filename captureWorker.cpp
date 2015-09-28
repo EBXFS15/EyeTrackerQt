@@ -464,7 +464,7 @@ void CaptureWorker::process()
 {
     open_device();
     init_device();
-    set_fix_framerate(15);
+    //set_fix_framerate(15);
     start_streaming();
     print_video_formats();
     disable_camera_autoexposure();
