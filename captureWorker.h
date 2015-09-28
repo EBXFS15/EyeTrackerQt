@@ -85,6 +85,7 @@ class CaptureWorker: public QObject
     int                             r, fd;
     unsigned int                    i, n_buffers;
     struct buffer                   *buffers;
+    unsigned long                   sequence;
 
     //Opencv image
     IplImage frame;

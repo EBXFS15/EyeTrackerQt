@@ -42,6 +42,7 @@ CaptureWorker::CaptureWorker()
     frame.imageData = (char *)cvAlloc(frame.imageSize);
     eyeCenter.x=-1;
     eyeCenter.y=-1;
+    sequence = 0;
     memset (&sparams,0,sizeof(struct v4l2_streamparm));
 }
 
@@ -115,6 +116,12 @@ int CaptureWorker::getFrameV4l2(void)
               frame.imageSize);
         }
 
+        if (buf.sequence - sequence > 1)
+        {
+            //at least one frame was dropped
+            emit message(QString("Lost frame(s): ")+ QString::number(buf.sequence - sequence));
+        }
+        sequence = buf.sequence;
         timestamp = buf.timestamp.tv_sec + ((double)buf.timestamp.tv_usec) / 1000000;
         emit gotFrame(((qint64)buf.timestamp.tv_sec) * 1000000 + ((qint64)buf.timestamp.tv_usec));
 
