@@ -47,6 +47,6 @@ GROUP ( libc.so.6 libc_nonshared.a  AS_NEEDED ( ld-linux-armhf.so.3 ) )
 * 6) Copy uvcvideo.ko from https://github.com/EBXFS15/uvc-from-bbb-sources to /usr/local/bin/
 * 7) Copy ebx_monitor from https://github.com/EBXFS15/ebx_monitor to /usr/local/bin
 * 8) Copy setup.sh to /usr/local/bin
-* 9) Open project in QtCreator, compile and deploy to /usr/local/bin <\br> (copy binary to /usr/local/bin)
+* 9) Open project in QtCreator, compile and deploy to /usr/local/bin (copy binary to /usr/local/bin)
 
 
