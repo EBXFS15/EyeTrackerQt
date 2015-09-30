@@ -43,10 +43,11 @@ OUTPUT_FORMAT(elf32-littlearm)
 GROUP ( libc.so.6 libc_nonshared.a  AS_NEEDED ( ld-linux-armhf.so.3 ) )
 ```
 * 4) Git clone https://github.com/EBXFS15/EyeTrackerQt
-* 5) Copy haarcascade_eye_tree_eyeglasses.xml in /usr/local/bin/ on BeagleBoneBlack
-* 6) Copy uvcvideo.ko from https://github.com/EBXFS15/uvc-from-bbb-sources to /usr/local/bin/
-* 7) Copy ebx_monitor.ko from https://github.com/EBXFS15/ebx_monitor to /usr/local/bin/
-* 8) Copy setup.sh to /usr/local/bin/
-* 9) Open project in QtCreator, compile and deploy to /usr/local/bin (copy the binary «EyeTracker» to /usr/local/bin/)
+* 5) cd EyeTrackerQt
+* 6) Copy haarcascade_eye_tree_eyeglasses.xml in /home/debian/ on BeagleBoneBlack
+* 7) Copy uvcvideo.ko from https://github.com/EBXFS15/uvc-from-bbb-sources to /home/debian/
+* 8) Copy ebx_monitor.ko from https://github.com/EBXFS15/ebx_monitor to /home/debian/
+* 9) Copy setup.sh to /home/debian/
+* 10) Open project in QtCreator, compile and deploy to /home/debian/ (Default target location)
 
 
